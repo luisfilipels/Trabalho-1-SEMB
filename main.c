@@ -122,11 +122,55 @@ int Threshold(int *hist){
 
 }
 
-int isValid (int binaryMatrix[120][160], int x, int y, int visited[120][160]) {
-    if (x >= 0 && x < 120 && y >= 0 && y < 160 && binaryMatrix[x][y] == 255 && visited[x][y] != 1) {
+int isValid (int binaryMatrix[120][160], int x, int y, int visited[120][160], int comp) {
+    if (x >= 0 && x < 120 && y >= 0 && y < 160 && binaryMatrix[x][y] == comp && visited[x][y] != 1) {
         return 1;
     }
     return 0;
+}
+
+void erode (int outBinaryMatrix[120][160], int visited[120][160]) {
+    int orBinaryMatrix[120][160];
+    for (int h = 0; h < 120; h++) {
+        for (int w = 0; w < 160; w++) {
+            orBinaryMatrix[h][w] = outBinaryMatrix[h][w];
+        }
+    }
+    for (int h = 0; h < 120; h++) {
+        for (int w = 0; w < 160; w++) {
+            if (orBinaryMatrix[h][w] == 255) {
+                if (!(isValid(orBinaryMatrix, h, w-1, visited, 255) &&
+                      isValid(orBinaryMatrix, h, w+1, visited, 255) &&
+                      isValid(orBinaryMatrix, h+1, w, visited, 255) &&
+                      isValid(orBinaryMatrix, h-1, w, visited, 255)
+                )) {
+                    outBinaryMatrix[h][w] = 0;
+                }
+            }
+        }
+    }
+}
+
+void dilate (int outBinaryMatrix[120][160], int visited[120][160]) {
+    int orBinaryMatrix[120][160];
+    for (int h = 0; h < 120; h++) {
+        for (int w = 0; w < 160; w++) {
+            orBinaryMatrix[h][w] = outBinaryMatrix[h][w];
+        }
+    }
+    for (int h = 0; h < 120; h++) {
+        for (int w = 0; w < 160; w++) {
+            if (orBinaryMatrix[h][w] == 0) {
+                if (isValid(orBinaryMatrix, h, w-1, visited, 255) ||
+                    isValid(orBinaryMatrix, h, w+1, visited, 255) ||
+                    isValid(orBinaryMatrix, h+1, w, visited, 255) ||
+                    isValid(orBinaryMatrix, h-1, w, visited, 255)
+                ) {
+                    outBinaryMatrix[h][w] = 255;
+                }
+            }
+        }
+    }
 }
 
 void floodFill (int binaryMatrix[120][160], int x, int y, int visited[120][160], int targetColor) {
@@ -138,19 +182,19 @@ void floodFill (int binaryMatrix[120][160], int x, int y, int visited[120][160],
         dequeue(queue, &currentX, &currentY);
         binaryMatrix[currentX][currentY] = targetColor;
         visited[currentX][currentY] = 1;
-        if (isValid(binaryMatrix, currentX+1, currentY, visited)){
+        if (isValid(binaryMatrix, currentX+1, currentY, visited, 255)){
             binaryMatrix[currentX+1][currentY] = targetColor;
             push(queue, currentX+1, currentY);
         }
-        if (isValid(binaryMatrix, currentX-1, currentY, visited)){
+        if (isValid(binaryMatrix, currentX-1, currentY, visited, 255)){
             binaryMatrix[currentX-1][currentY] = targetColor;
             push(queue, currentX-1, currentY);
         }
-        if (isValid(binaryMatrix, currentX, currentY+1, visited)){
+        if (isValid(binaryMatrix, currentX, currentY+1, visited, 255)){
             binaryMatrix[currentX][currentY+1] = targetColor;
             push(queue, currentX, currentY+1);
         }
-        if (isValid(binaryMatrix, currentX, currentY-1, visited)){
+        if (isValid(binaryMatrix, currentX, currentY-1, visited, 255)){
             binaryMatrix[currentX][currentY-1] = targetColor;
             push(queue, currentX, currentY-1);
         }
@@ -312,18 +356,27 @@ int runThreshold () {
         }
     }
 
-    int count = 0;
+    //erode(matriz, visitados);
+    erode(matriz, visitados);
+    dilate(matriz, visitados);
+    dilate(matriz, visitados);
+    erode(matriz, visitados);
+    //dilate(matriz, visitados);
+
+    int count = 40;
+    int connectedComps = 0;
 
     for (int h = 0; h < 120; h++) {
         for (int w = 0; w < 160; w++) {
             if (matriz[h][w] == 255 && !visitados[h][w]) {
-                count++;
-                if (count == 255) count = 0;
+                count += 5;
+                connectedComps++;
+                if (count >= 255) count = 40;
                 floodFill(matriz, h, w, visitados, count);
             }
         }
     }
-
+    printf("\nconnectedComps = %d", connectedComps);
     printf("\ncount = %d", count);
 
     fputs("P5\n", file2write);
@@ -342,7 +395,7 @@ int runThreshold () {
 }
 
 int main() {
-    testThreshold();
-    //runThreshold();
+    //testThreshold();
+    runThreshold();
     int matrix[160][120];
 }
