@@ -120,36 +120,10 @@ int Threshold(int *hist){
     }
     return threshold;
 
-    /*int i, j, npxl=0, threshold=0;
-    double p,mg=0,var=0,greaterVar = 0,mk,aux=0;
-    /*Media global*/
-    /*for(i=0;i<256;++i){
-        mg += (double)hist[i]*i;
-        npxl += hist[i];
-    }
-    mg = mg/npxl;
-
-    for(i=0;i<256;++i){
-        p=0;
-        for(j=0;j<=i;++j){
-            p += (double)hist[j];
-        }
-        p /=npxl;
-        aux += (double)(hist[i]*i);
-        mk = aux/npxl;
-        if(p>0&&p<1){
-            var = ((mg*(p-mk))*(mg*p-mk))/((p)*(1-p));
-        }
-        if(var>greaterVar){
-            greaterVar = var;
-            threshold = i;
-        }
-    }
-    return threshold;*/
 }
 
 int isValid (int binaryMatrix[120][160], int x, int y, int visited[120][160]) {
-    if (x >= 0 && x < 160 && y >= 0 && y < 120 && binaryMatrix[x][y] == 255 && !visited[x][y]) {
+    if (x >= 0 && x < 120 && y >= 0 && y < 160 && binaryMatrix[x][y] == 255 && visited[x][y] != 1) {
         return 1;
     }
     return 0;
@@ -158,29 +132,136 @@ int isValid (int binaryMatrix[120][160], int x, int y, int visited[120][160]) {
 void floodFill (int binaryMatrix[120][160], int x, int y, int visited[120][160], int targetColor) {
     Queue *queue = createQueue((unsigned int) ((120 * 160) / 2));
     push(queue, x, y);
-    visited[x][y] = 1;
+    int currentX = 0;
+    int currentY = 0;
     while (!isEmpty(queue)) {
-        int currentX;
-        int currentY;
         dequeue(queue, &currentX, &currentY);
         binaryMatrix[currentX][currentY] = targetColor;
         visited[currentX][currentY] = 1;
         if (isValid(binaryMatrix, currentX+1, currentY, visited)){
+            binaryMatrix[currentX+1][currentY] = targetColor;
             push(queue, currentX+1, currentY);
         }
         if (isValid(binaryMatrix, currentX-1, currentY, visited)){
+            binaryMatrix[currentX-1][currentY] = targetColor;
             push(queue, currentX-1, currentY);
         }
         if (isValid(binaryMatrix, currentX, currentY+1, visited)){
+            binaryMatrix[currentX][currentY+1] = targetColor;
             push(queue, currentX, currentY+1);
         }
         if (isValid(binaryMatrix, currentX, currentY-1, visited)){
+            binaryMatrix[currentX][currentY-1] = targetColor;
             push(queue, currentX, currentY-1);
         }
     }
 }
 
+int testThreshold () {
+    FILE *file2read;
+    int i=0;
+    int hist[256];
+    char buffer[256]="";
+    char buffer2[256];
+    printf("Informe o nome do arquivo: ");
+    scanf("%s",buffer);
+    file2read = fopen(buffer,"r");
 
+
+    if(file2read == NULL){
+        printf("Falha ao abrir arquivos\n");
+        exit(1);
+    }
+
+    int matriz [120][160];
+    int visitados[120][160];
+
+    for(i=0;i<256;++i) hist[i] = 0;
+
+    for (int j = 0; j < 15; j++) {
+        fgetc(file2read);
+    }
+
+    for (int h = 0; h < 120; h++) {
+        for (int w = 0; w < 160; w++) {
+            visitados[h][w] = 0;
+            int c = fgetc(file2read);
+            matriz[h][w] = c;
+            hist[matriz[h][w]]++;
+        }
+    }
+
+    int t = Threshold(hist);
+    printf("t = %d", t);
+
+    for (int h = 0; h < 120; h++) {
+        for (int w = 0; w < 160; w++) {
+            if (matriz[h][w] < t) {
+                matriz[h][w] = 0;
+            } else {
+                matriz[h][w] = 255;
+            }
+        }
+    }
+
+    int matrizbkp[120][160];
+    for (int k = 0; k < 120; k++) {
+        for (int j = 0; j < 160; j++) {
+            matrizbkp[k][j] = matriz[k][j];
+        }
+    }
+
+    FILE *file2write;
+
+    for (int b = 0; b < 76; b++) {
+        char path[256];
+        char num[10];
+        int count = 0;
+        strcpy(path, "out");
+        strcpy(num, itoa(b, num, 10));
+        strcat(path, num);
+        strcat(path, ".pgm");
+        file2write = fopen(path, "w+");
+        int flag = 0;
+        for (int h = 0; h < 120; h++) {
+            for (int w = 0; w < 160; w++) {
+                if (matriz[h][w] == 255 && !visitados[h][w]) {
+                    count++;
+                    if (h == 27 && w == 121) {
+                        printf("Here");
+                    }
+                    floodFill(matriz, h, w, visitados, 60);
+                    if (count >= b) {
+                        flag = 1;
+                        break;
+                    }
+                }
+            }
+            if (flag) break;
+        }
+
+        fputs("P5\n", file2write);
+        fputs("160 120\n", file2write);
+        fputs("255\n", file2write);
+
+        for (int h = 0; h < 120; h++) {
+            for (int w = 0; w < 160; w++) {
+                fputc(matriz[h][w], file2write);
+            }
+        }
+        for (int m = 0; m < 120; m++) {
+            for (int j = 0; j < 160; j++) {
+                matriz[m][j] = matrizbkp[m][j];
+                visitados[m][j] = 0;
+            }
+        }
+        fclose(file2write);
+    }
+
+    fclose(file2read);
+
+    return 0;
+}
 
 int runThreshold () {
     FILE *file2read, *file2write, *aux;
@@ -212,7 +293,7 @@ int runThreshold () {
     for (int h = 0; h < 120; h++) {
         for (int w = 0; w < 160; w++) {
             visitados[h][w] = 0;
-            char c = fgetc(file2read);
+            int c = fgetc(file2read);
             matriz[h][w] = c;
             hist[matriz[h][w]]++;
         }
@@ -223,7 +304,7 @@ int runThreshold () {
 
     for (int h = 0; h < 120; h++) {
         for (int w = 0; w < 160; w++) {
-            if (matriz[h][w] < 60) {
+            if (matriz[h][w] < t) {
                 matriz[h][w] = 0;
             } else {
                 matriz[h][w] = 255;
@@ -237,7 +318,8 @@ int runThreshold () {
         for (int w = 0; w < 160; w++) {
             if (matriz[h][w] == 255 && !visitados[h][w]) {
                 count++;
-                floodFill(matriz, h, w, visitados, 80);
+                if (count == 255) count = 0;
+                floodFill(matriz, h, w, visitados, count);
             }
         }
     }
@@ -254,52 +336,13 @@ int runThreshold () {
         }
     }
 
-
-
-
-
-    //i=0;
-    //while(((c=fgetc(file2read))!=EOF) && i < 4){
-    //    pos++;
-    //    fputc(c,file2write);
-    //    if(c=='\n') ++i;
-    //}
-
-    //fseek(file2read,pos,0);
-
-    //while(fscanf(file2read,"%s",strnum)!=EOF){
-    //    ++hist[atoi(strnum)];
-    //    ++npxl;
-    //}
-
-    //fseek(file2read,pos,0);
-
-    /*printf("t=%d\n",t);
-    i=0;
-    while(fscanf(file2read,"%s",strnum)!=EOF){
-        ++i;
-        if(atoi(strnum)<t){
-            itoa(0,buffer,10);
-            buffer[3]='\0';
-            strncpy(strnum,buffer,3);
-        }else{
-            itoa(255,buffer,10);
-            buffer[3]='\0';
-            strncpy(strnum,buffer,3);
-        }
-        if(i==12){
-            fprintf(file2write,"%s\n",strnum);
-            i=0;
-        }else{
-            fprintf(file2write,"%s ",strnum);
-        }
-    }*/
     fclose(file2read);
     fclose(file2write);
     return 0;
 }
 
 int main() {
-    runThreshold();
+    testThreshold();
+    //runThreshold();
     int matrix[160][120];
 }
