@@ -262,7 +262,7 @@ int testThreshold () {
         char num[10];
         int count = 0;
         strcpy(path, "out");
-        strcpy(num, itoa(b, num, 10));
+        //strcpy(num, itoa(b, num, 10));
         strcat(path, num);
         strcat(path, ".pgm");
         file2write = fopen(path, "w+");
@@ -308,13 +308,10 @@ int testThreshold () {
 }
 
 int runThreshold () {
-    FILE *file2read, *file2write, *aux;
-    int i=0,pos=0;
-    int npxl=0,mg=0;
+    FILE *file2read, *file2write;
+    int i=0;
     int hist[256];
-    char *strnum = malloc(3*sizeof(char));
     char buffer[256]="";
-    char num[3];
     printf("Informe o nome do arquivo: ");
     scanf("%s",buffer);
     file2read = fopen(buffer,"r");
@@ -325,8 +322,8 @@ int runThreshold () {
         exit(1);
     }
 
-    int matriz [120][160];
-    int visitados[120][160];
+    int matrix [120][160];
+    int visited[120][160];
 
     for(i=0;i<256;++i) hist[i] = 0;
 
@@ -336,10 +333,10 @@ int runThreshold () {
 
     for (int h = 0; h < 120; h++) {
         for (int w = 0; w < 160; w++) {
-            visitados[h][w] = 0;
+            visited[h][w] = 0;
             int c = fgetc(file2read);
-            matriz[h][w] = c;
-            hist[matriz[h][w]]++;
+            matrix[h][w] = c;
+            hist[matrix[h][w]]++;
         }
     }
 
@@ -348,36 +345,58 @@ int runThreshold () {
 
     for (int h = 0; h < 120; h++) {
         for (int w = 0; w < 160; w++) {
-            if (matriz[h][w] < t) {
-                matriz[h][w] = 0;
+            if (matrix[h][w] < t) {
+                matrix[h][w] = 0;
             } else {
-                matriz[h][w] = 255;
+                matrix[h][w] = 255;
             }
         }
     }
 
-    //erode(matriz, visitados);
-    erode(matriz, visitados);
-    dilate(matriz, visitados);
-    dilate(matriz, visitados);
-    erode(matriz, visitados);
-    //dilate(matriz, visitados);
+    erode(matrix, visited);
+    dilate(matrix, visited);
 
-    int count = 40;
+
     int connectedComps = 0;
+
+    int originalMatrix [120][160];
+    for (int h = 0; h < 120; h++) {
+        for (int w = 0; w < 160; w++) {
+            originalMatrix[h][w] = matrix[h][w];
+        }
+    }
+
+    int originalVisited[120][160];
+    for (int h = 0; h < 120; h++) {
+        for (int w = 0; w < 160; w++) {
+            originalVisited[h][w] = visited[h][w];
+        }
+    }
 
     for (int h = 0; h < 120; h++) {
         for (int w = 0; w < 160; w++) {
-            if (matriz[h][w] == 255 && !visitados[h][w]) {
-                count += 5;
+            if (matrix[h][w] == 255 && !visited[h][w]) {
                 connectedComps++;
-                if (count >= 255) count = 40;
-                floodFill(matriz, h, w, visitados, count);
+                floodFill(matrix, h, w, visited, 80);
             }
         }
     }
+
+    int targetColor = 40;
+    int rate = (255 - 40) / connectedComps;
+
+    for (int h = 0; h < 120; h++) {
+        for (int w = 0; w < 160; w++) {
+            if (originalMatrix[h][w] == 255 && !originalVisited[h][w]) {
+                if (targetColor >= 255) targetColor = 40;
+                targetColor += rate;
+                floodFill(originalMatrix, h, w, originalVisited, targetColor);
+            }
+        }
+    }
+
     printf("\nconnectedComps = %d", connectedComps);
-    printf("\ncount = %d", count);
+    printf("\ntargetColor = %d", targetColor);
 
     fputs("P5\n", file2write);
     fputs("160 120\n", file2write);
@@ -385,7 +404,7 @@ int runThreshold () {
 
     for (int h = 0; h < 120; h++) {
         for (int w = 0; w < 160; w++) {
-            fputc(matriz[h][w], file2write);
+            fputc(originalMatrix[h][w], file2write);
         }
     }
 
