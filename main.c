@@ -119,12 +119,25 @@ int Threshold(int *hist){
     gavg = gsum/total;
 
     for(int i=0;i<256;++i){
-        n1 += hist[i];
+        
+	n1 += hist[i];
+	//n1-Número de pixels cujas intensidades variam de 0 a i (Classe C1) 
+	
 	m1 += (double)i*hist[i];
+	//m1-Soma usada para a média ponderada das intensidades dos pixels de C1
+	
 	n2 = total - n1;
+	//n2-Número de pixels cujas intensidades variam de i+1 a 255 (Classe C2)
+	
 	m2 = gsum - m1;
+	//m2-Soma usada para a média ponderada das intensidades dos pixels de C2
+	
 	var = (n1/total)*((m1/n1)-gavg)*((m1/(n1))-gavg)+
 		(n2/total)*((m2/n2)-gavg)*((m2/n2)-gavg);
+	//var-Variância entre classes para essa aplicação conforme descrito em:
+	//GONZALEZ, Rafael C. WOODS, Richard E. EDDINS, Steven L. Digital Image
+	//Processing using MATLAB. 2a edicao. Gatesmark Publishing. 2009.
+	
 	if(var > maxVar){
 	    maxVar = var;
 	    threshold = i;
