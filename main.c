@@ -1,6 +1,6 @@
 /*
  *Arquivo: main.c
- *Autores: Luis Filipe de Lima Sales (GitHub @luisfilipels) e Raimundo Azevedo 
+ *Autores: Luis Filipe de Lima Sales (GitHub @luisfilipels) e Raimundo Azevedo (GitHub @Neto2047) 
  *
  *Descrição: Este algoritmo consiste na execução do algoritmo Flood Fill sobre uma imagem PGM (em formato binário),
  *passando por, antes disso, pelo processamento da imagem pelo algoritmo de Otsu (para determinação do nível ótimo de
