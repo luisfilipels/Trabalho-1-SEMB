@@ -96,41 +96,38 @@ void dequeue (Queue *queue, int *x, int *y) {
 
 /*-----------------------------------------INIT OTSU THRESHOLD-----------------------------------------*/
 
-/** @brief A função Threshold executa o algoritmo de Otsu sobre um histograma, e com isso, determina o valor ótimo de limiarização para a imagem.
-  * @param *hist Ponteiro para array que representa o histograma de uma imagem
-  * @return Retorna um inteiro representando o valor ótimo de limiarização para uma imagem.
-  */
+/** @brief A função Threshold executa o algoritmo de Otsu sobre um histograma,
+ **        e com isso, determina o valor ótimo de limiarização para a imagem.
+ ** @param *hist Ponteiro para array que representa o histograma dos pixels uma imagem
+ ** @return Retorna um inteiro representando o valor ótimo de limiarização para uma imagem.
+ **/
 int Threshold(int *hist){
-    int total = 160 * 120;
-    double soma = 0;
-    for (int i = 0; i < 256; i++) {
-        soma += i * hist[i];
+    int total = 160*120;//quantidade de pixels da imagem
+    double gsum = 0;	//soma ponderada global das ocorrencias do pixel por sua intensidade
+    double gavg;	//media global ponderada dos pixels
+    double n1=0;	//numero de pixels da classe C1
+    double n2=0;	//numero de pixels da classe C2
+    double m1=0;	//media ponderada dos pixels da classe C1 
+    double m2=0;	//media ponderada dos pixels da classe C2
+    double var;		//variancia entre as classes C1 e C2
+    double maxVar=0;	//armazena a maior variância
+    double threshold;	//valor para o qual as classes C1 e C2 possuem variância máxima
+
+    for(int i=0;i<256;i++){
+        gsum += (double)hist[i]*i;
     }
+    gavg = gsum/total;
 
-    double soma2 = 0;
-    int pesoBack = 0;
-    int pesoFront = 0;
-
-    double varMax = 0;
-    int threshold = 0;
-
-    for (int i = 0; i < 256; i++) {
-        pesoBack += hist[i];
-        if (pesoBack == 0) continue;
-
-        pesoFront = total - pesoBack;
-        if (pesoFront == 0) break;
-
-        soma2 += (double) i * hist[i];
-
-        double mediaBack = soma2 / pesoBack;
-        double mediaFront = (soma - soma2) / pesoFront;
-
-        double varEntre = (double) pesoBack * (double) pesoFront * (mediaBack - mediaFront) * (mediaBack - mediaFront);
-
-        if (varEntre > varMax) {
-            varMax = varEntre;
-            threshold = i;
+    for(int i=0;i<256;++i){
+        n1 += hist[i];
+	m1 += (double)i*hist[i];
+	n2 = total - n1;
+	m2 = gsum - m1;
+	var = (n1/total)*((m1/n1)-gavg)*((m1/(n1))-gavg)+
+		(n2/total)*((m2/n2)-gavg)*((m2/n2)-gavg);
+	if(var > maxVar){
+	    maxVar = var;
+	    threshold = i;
         }
     }
     return threshold;
