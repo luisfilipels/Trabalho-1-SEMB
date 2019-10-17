@@ -119,7 +119,7 @@ int Threshold(int *hist){
     gavg = gsum/total;
 
     for(int i=0;i<256;++i){
-        
+         
 	n1 += hist[i];
 	//n1-Número de pixels cujas intensidades variam de 0 a i (Classe C1) 
 	
