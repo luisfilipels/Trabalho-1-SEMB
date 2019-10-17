@@ -184,10 +184,10 @@ void erode (int outBinaryMatrix[120][160], int visited[120][160]) {
     for (int h = 0; h < 120; h++) {
         for (int w = 0; w < 160; w++) {
             if (orBinaryMatrix[h][w] == 255) {  // Se o pixel estiver "pintado"
-                if (!(isValid(orBinaryMatrix, h, w-1, visited, 255) &&
-                      isValid(orBinaryMatrix, h, w+1, visited, 255) && 
-                      isValid(orBinaryMatrix, h+1, w, visited, 255) &&
-                      isValid(orBinaryMatrix, h-1, w, visited, 255)     
+                if ( (isValid(orBinaryMatrix, h, w-1, visited, 0) ||
+                      isValid(orBinaryMatrix, h, w+1, visited, 0) || 
+                      isValid(orBinaryMatrix, h+1, w, visited, 0) ||
+                      isValid(orBinaryMatrix, h-1, w, visited, 0)     
                       /* As verificações anteriores servem para determinar se algum dos vizinhos de um pixel branco
                        * (vizinhos apenas em cima e em baixo, esquerda e direita), é preto. Se for, o pixel atual
                        * fica preto, pois isso significa que estamos na borda de um objeto.
