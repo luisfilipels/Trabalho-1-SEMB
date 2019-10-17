@@ -251,8 +251,16 @@ void dilate (int outBinaryMatrix[120][160], int visited[120][160]) {
     }
 }
 
-/** @brief floodFill
+/** @brief floodFill determina a area conectada a um dado pixel da imagem obtida.
+  * Se o pixel vizinho é de foreground (255) este é preenchido com targetColor e 
+  * inserido na fila sendo posteriormente marcado como visitado e removido da
+  * fila ao verificar seus vizinhos. A função encerra quando a fila for vazia.
   *
+  * @param binaryMatrix[120][160] matriz de pixels da imagem binária
+  * @param x indica a posicão do pixel relativa às linhas da matriz
+  * @param y indica a posição do pixel relativas às colunas da matriz
+  * @param visited[120][160] visited[x][y] indica se o pixel (x,y) foi visitado (1) ou não (0)
+  * @param targetColor inteiro entre 0 e 255 indicando uma cor em gray scale para preenchimento
   */
 void floodFill (int binaryMatrix[120][160], int x, int y, int visited[120][160], int targetColor) {
     Queue *queue = createQueue((unsigned int) ((120 * 160) / 2));
@@ -260,21 +268,26 @@ void floodFill (int binaryMatrix[120][160], int x, int y, int visited[120][160],
     int currentX = 0;
     int currentY = 0;
     while (!isEmpty(queue)) {
-        dequeue(queue, &currentX, &currentY);
-        binaryMatrix[currentX][currentY] = targetColor;
-        visited[currentX][currentY] = 1;
+        dequeue(queue, &currentX, &currentY);//remove da fila e atualiza a posicao atual
+        binaryMatrix[currentX][currentY] = targetColor;//preenche o pixel atual com targetColor
+        visited[currentX][currentY] = 1;//marca o pixel como visitado
+	//verifica vizinho acima, se ele for pixel de foreground e não
+	//foi visitado é preenchido e inserido na fila
         if (isValid(binaryMatrix, currentX+1, currentY, visited, 255)){
             binaryMatrix[currentX+1][currentY] = targetColor;
             push(queue, currentX+1, currentY);
         }
+	//verifica vizinho abaixo, análogo ao caso anterior
         if (isValid(binaryMatrix, currentX-1, currentY, visited, 255)){
             binaryMatrix[currentX-1][currentY] = targetColor;
             push(queue, currentX-1, currentY);
-        }
+	}
+	//verifica vizinho a direita, análogo ao caso anterior
         if (isValid(binaryMatrix, currentX, currentY+1, visited, 255)){
             binaryMatrix[currentX][currentY+1] = targetColor;
             push(queue, currentX, currentY+1);
         }
+	//verifica vizinho a esquerda, análogo ao caso anterior
         if (isValid(binaryMatrix, currentX, currentY-1, visited, 255)){
             binaryMatrix[currentX][currentY-1] = targetColor;
             push(queue, currentX, currentY-1);
@@ -389,9 +402,10 @@ int testThreshold () {
 }
 
 int runThreshold () {
-    FILE *file2read, *file2write;
+    FILE *file2read;	//ponteiro do arquivo para leitura
+    FILE *file2write;	//ponteiro do arquivo para escrita
     int i=0;
-    int hist[256];
+    int hist[256];	//histograma de pixels
     char buffer[256]="";
     printf("Informe o nome do arquivo: ");
     scanf("%s",buffer);
