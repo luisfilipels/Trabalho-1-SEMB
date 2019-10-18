@@ -144,13 +144,12 @@ int Threshold(int *hist){
     double m2=0;	//media ponderada dos pixels da classe C2
     double var;		//variancia entre as classes C1 e C2
     double maxVar=0;	//armazena a maior variância
-    double threshold;	//valor para o qual as classes C1 e C2 possuem variância máxima
+    int threshold;	//valor para o qual as classes C1 e C2 possuem variância máxima
 
     for(int i=0;i<256;i++){
         gsum += (double)hist[i]*i;
     }
     gavg = gsum/total;
-
     for(int i=0;i<256;++i){
          
 	n1 += hist[i];
@@ -345,6 +344,7 @@ int runAlgorithm() {
     FILE *file2write;	// Ponteiro do arquivo para escrita
     char path[256]="";  // Buffer usado para armazenar o caminho para o arquivo
     printf("Informe o nome do arquivo, ou seu caminho e nome: ");
+    fflush(stdout); //operação nao recomendada
     scanf("%s",path);
     file2read = fopen(path,"r");
     file2write = fopen("out.pgm","w+");
@@ -368,12 +368,12 @@ int runAlgorithm() {
     for (int h = 0; h < 120; h++) {
         for (int w = 0; w < 160; w++) {
             visited[h][w] = 0;              // Todos os visitados iniciados em 0.
-            int c = fgetc(file2read);
+            int c = (unsigned char)fgetc(file2read);
             matrix[h][w] = c;               // Armazenamos na memória o valor de um pixel.
             hist[matrix[h][w]]++;           // Incrementamos a cor do pixel atual no histograma.
         }
     }
-
+    
     int t = Threshold(hist);
     printf("t = %d", t);
 
