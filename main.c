@@ -1,12 +1,45 @@
 /*
- *Arquivo: main.c
- *Autores: Luis Filipe de Lima Sales (GitHub @luisfilipels) e Raimundo Azevedo (GitHub @Neto2047) 
+ * Arquivo: main.c
+ * Autores: Luis Filipe de Lima Sales (GitHub @luisfilipels) e Raimundo Azevedo (GitHub @Neto2047)
  *
- *Descrição: Este algoritmo consiste na execução do algoritmo Flood Fill sobre uma imagem PGM (em formato binário),
- *passando por, antes disso, pelo processamento da imagem pelo algoritmo de Otsu (para determinação do nível ótimo de
- *limiarização), por uma roodada de erosão e outra de dilatação, e por fim, pelo Flood Fill em si, que é utilizado para
- *a contagem de componentes conexas que foram obtidas a partir da imagem binária obtida pelo algoritmo de Otsu. A imagem
- *é, por fim, exportada para outro arquivo, out.pgm, que mostra o resultado dessas operações.
+ * Descrição: Este algoritmo consiste na execução do algoritmo Flood Fill sobre uma imagem PGM (em formato binário),
+ * passando por, antes disso, pelo processamento da imagem pelo algoritmo de Otsu (para determinação do nível ótimo de
+ * limiarização), por uma roodada de erosão e outra de dilatação, e por fim, pelo Flood Fill em si, que é utilizado para
+ * a contagem de componentes conexas que foram obtidas a partir da imagem binária obtida pelo algoritmo de Otsu. A imagem
+ * é, por fim, exportada para outro arquivo, out.pgm, que mostra o resultado dessas operações.
+*/
+
+/*
+ * HISTÓRICO DE EDIÇÕES:
+ * -------------------------------------------------
+ * Data: 8/10/19, 7:22 PM
+ * Autor: Luis Filipe e Raimundo Azevedo
+ * Motivo: Primeiro commit no Git. Base do código, e implementação de Otsu, implmentados dias antes.
+ * -------------------------------------------------
+ * Data: 9/10/19, 11:44 PM
+ * Autor: Luis Filipe
+ * Motivo: Flood Fill funcionando.
+ * -------------------------------------------------
+ * Data: 10/10/19, 8:14 PM
+ * Autor: Luis Filipe e Raimundo Azevedo
+ * Motivo: Comentários no código.
+ * -------------------------------------------------
+ * Data: 11/10/19, 2:47 PM
+ * Autor: Luis Filipe
+ * Motivo: Correções no algoritmo.
+ * -------------------------------------------------
+ * Data: 16/10/19, 8:16 PM
+ * Autor: Raimundo Azevedo
+ * Motivo: Lógica equivalente para a função erode.
+ * -------------------------------------------------
+ * Data: 16/10/19, 10:22 PM
+ * Autor: Raimundo Azevedo
+ * Motivo: Função Threshold melhorada. Adiçao de comentários em Otsu, Threshold e Flood Fill.
+ * -------------------------------------------------
+ * Data: 17/10/19, 10:42 PM
+ * Autor: Luis Filipe
+ * Motivo: Mais comentários. Algoritmo OK!
+ * -------------------------------------------------
 */
 
 #include <stdio.h>
@@ -213,10 +246,10 @@ void erode (int outBinaryMatrix[120][160], int visited[120][160]) {
 /** @brief A função dilate é análoga à erode, fazendo, porém, o contrário. Ou seja, aplica uma transformação de 
   * dilatação na imagem, que consiste em pintar de branco cada pixel do exterior imediato de cada "objeto". Exemplo:
   *                 0 0 0 0 0 0 0               1 0 0 0 0 0 0 
-  *                 1 0 0 1 1 0 0               1 1 0 1 1 0 0     
-  *                 0 0 1 1 1 1 0     ---->     1 0 1 1 1 1 0
-  *                 0 0 1 1 1 1 0               0 0 1 1 1 1 0
-  *                 0 0 0 1 1 0 0               0 0 0 1 1 0 0
+  *                 1 0 0 0 0 0 0               1 1 0 1 1 0 0
+  *                 0 0 0 1 1 0 0     ---->     1 0 1 1 1 1 0
+  *                 0 0 0 1 1 0 0               0 0 1 1 1 1 0
+  *                 0 0 0 0 0 0 0               0 0 0 1 1 0 0
   *                 0 0 0 0 0 0 0               0 0 0 0 0 0 0
   * Com a execução dessa função, conseguimos restaurar ao tamanho original cada objeto da imagem, após a execução do dilate.
   * @param outBinaryMatrix[120][160] Matriz resultante da operação, passada por referência.
@@ -295,121 +328,25 @@ void floodFill (int binaryMatrix[120][160], int x, int y, int visited[120][160],
     }
 }
 
-int testThreshold () {
-    FILE *file2read;
-    int i=0;
-    int hist[256];
-    char buffer[256]="";
-    char buffer2[256];
-    printf("Informe o nome do arquivo: ");
-    scanf("%s",buffer);
-    file2read = fopen(buffer,"r");
 
 
-    if(file2read == NULL){
-        printf("Falha ao abrir arquivos\n");
-        exit(1);
-    }
-
-    int matriz [120][160];
-    int visitados[120][160];
-
-    for(i=0;i<256;++i) hist[i] = 0;
-
-    for (int j = 0; j < 15; j++) {
-        fgetc(file2read);
-    }
-
-    for (int h = 0; h < 120; h++) {
-        for (int w = 0; w < 160; w++) {
-            visitados[h][w] = 0;
-            int c = fgetc(file2read);
-            matriz[h][w] = c;
-            hist[matriz[h][w]]++;
-        }
-    }
-
-    int t = Threshold(hist);
-    printf("t = %d", t);
-
-    for (int h = 0; h < 120; h++) {
-        for (int w = 0; w < 160; w++) {
-            if (matriz[h][w] < t) {
-                matriz[h][w] = 0;
-            } else {
-                matriz[h][w] = 255;
-            }
-        }
-    }
-
-    int matrizbkp[120][160];
-    for (int k = 0; k < 120; k++) {
-        for (int j = 0; j < 160; j++) {
-            matrizbkp[k][j] = matriz[k][j];
-        }
-    }
-
-    FILE *file2write;
-
-    for (int b = 0; b < 76; b++) {
-        char path[256];
-        char num[10];
-        int count = 0;
-        strcpy(path, "out");
-        //strcpy(num, itoa(b, num, 10));
-        strcat(path, num);
-        strcat(path, ".pgm");
-        file2write = fopen(path, "w+");
-        int flag = 0;
-        for (int h = 0; h < 120; h++) {
-            for (int w = 0; w < 160; w++) {
-                if (matriz[h][w] == 255 && !visitados[h][w]) {
-                    count++;
-                    if (h == 27 && w == 121) {
-                        printf("Here");
-                    }
-                    floodFill(matriz, h, w, visitados, 60);
-                    if (count >= b) {
-                        flag = 1;
-                        break;
-                    }
-                }
-            }
-            if (flag) break;
-        }
-
-        fputs("P5\n", file2write);
-        fputs("160 120\n", file2write);
-        fputs("255\n", file2write);
-
-        for (int h = 0; h < 120; h++) {
-            for (int w = 0; w < 160; w++) {
-                fputc(matriz[h][w], file2write);
-            }
-        }
-        for (int m = 0; m < 120; m++) {
-            for (int j = 0; j < 160; j++) {
-                matriz[m][j] = matrizbkp[m][j];
-                visitados[m][j] = 0;
-            }
-        }
-        fclose(file2write);
-    }
-
-    fclose(file2read);
-
-    return 0;
-}
-
-int runThreshold () {
-    FILE *file2read;	//ponteiro do arquivo para leitura
-    FILE *file2write;	//ponteiro do arquivo para escrita
-    int i=0;
-    int hist[256];	//histograma de pixels
-    char buffer[256]="";
-    printf("Informe o nome do arquivo: ");
-    scanf("%s",buffer);
-    file2read = fopen(buffer,"r");
+/**
+ * @brief A função runAlgorithm executa todos os algoritmos já desenvolvidos. Primeiro é lido o caminho para um arquivo
+ * pgm que se deseja que se execute as funções. Essa imagem é lida e armazenada na memória. Enquanto ela está sendo lida,
+ * o histograma da imagem também está sendo gerado, histograma este que é posteriormente passado para a função Threshold.
+ * Feito isso, e com o valor ótimo de limiarização obtido, gera-se uma imagem binária que posteriormente passa por erosão
+ * e dilatação. Por fim, o Flood Fill é executado duas vezes, na primeira vez para se contar a quantidade de componentes
+ * conexas, e na segunda para pintar essas componentes de forma a haver uma distribuição uniforme de cores entre todas
+ * as componentes.
+ * @return
+ */
+int runAlgorithm() {
+    FILE *file2read;	// Ponteiro do arquivo para leitura
+    FILE *file2write;	// Ponteiro do arquivo para escrita
+    char path[256]="";  // Buffer usado para armazenar o caminho para o arquivo
+    printf("Informe o nome do arquivo, ou seu caminho e nome: ");
+    scanf("%s",path);
+    file2read = fopen(path,"r");
     file2write = fopen("out.pgm","w+");
 
     if((file2read == NULL) || (file2write == NULL)){
@@ -417,21 +354,23 @@ int runThreshold () {
         exit(1);
     }
 
-    int matrix [120][160];
-    int visited[120][160];
+    int hist[256];	       // Histograma de pixels
+    int matrix [120][160]; // Matriz usada para armazenar a imagem lida em memória. Operações são feitas nessa matriz.
+    int visited[120][160]; // Matriz que indica quais pixeis já foram visitados, em diferentes ocasiões.
 
-    for(i=0;i<256;++i) hist[i] = 0;
+    for(int i=0;i<256;++i) hist[i] = 0; // Iniciamos o histograma apenas com 0s.
 
     for (int j = 0; j < 15; j++) {
         fgetc(file2read);
+        // Descartamos os primeiros 15 caracteres do arquivo, pois não importam para este algoritmo.
     }
 
     for (int h = 0; h < 120; h++) {
         for (int w = 0; w < 160; w++) {
-            visited[h][w] = 0;
+            visited[h][w] = 0;              // Todos os visitados iniciados em 0.
             int c = fgetc(file2read);
-            matrix[h][w] = c;
-            hist[matrix[h][w]]++;
+            matrix[h][w] = c;               // Armazenamos na memória o valor de um pixel.
+            hist[matrix[h][w]]++;           // Incrementamos a cor do pixel atual no histograma.
         }
     }
 
@@ -440,16 +379,16 @@ int runThreshold () {
 
     for (int h = 0; h < 120; h++) {
         for (int w = 0; w < 160; w++) {
-            if (matrix[h][w] < t) {
+            if (matrix[h][w] < t) {           // Se o valor de um pixel for menor que o limiar, pintá-lo de preto.
                 matrix[h][w] = 0;
-            } else {
+            } else {                          // Se não, pintá-lo de branco.
                 matrix[h][w] = 255;
             }
         }
     }
 
-    erode(matrix, visited);
-    dilate(matrix, visited);
+    erode(matrix, visited);         // Realizamos uma erosão para limpar pixels "soltos" na imagem.
+    dilate(matrix, visited);        // Em seguida, uma dilatação, para preservar o tamanho dos elementos.
 
 
     int connectedComps = 0;
@@ -458,6 +397,8 @@ int runThreshold () {
     for (int h = 0; h < 120; h++) {
         for (int w = 0; w < 160; w++) {
             originalMatrix[h][w] = matrix[h][w];
+            // Salvamos a matriz original, para que depois de contar o número de componentes conexas, possamos pintá-la
+            // na cor correta.
         }
     }
 
@@ -465,27 +406,30 @@ int runThreshold () {
     for (int h = 0; h < 120; h++) {
         for (int w = 0; w < 160; w++) {
             originalVisited[h][w] = visited[h][w];
+            // Salvamos também a matriz de visitados, pelo mesmo motivo anterior.
         }
     }
 
     for (int h = 0; h < 120; h++) {
         for (int w = 0; w < 160; w++) {
-            if (matrix[h][w] == 255 && !visited[h][w]) {
-                connectedComps++;
-                floodFill(matrix, h, w, visited, 80);
+            if (matrix[h][w] == 255 && !visited[h][w]) {    // Se o pixel atual for branco e não tiver sido visitado
+                connectedComps++;                           // aumentamos a contagem de componentes
+                floodFill(matrix, h, w, visited, 80);       // e preenchemos aquela componente com uma cor qualquer.
             }
         }
     }
 
+    // Esta é a cor da primeira componente conexa.
     int targetColor = 40;
     int rate = (255 - 40) / connectedComps;
+    // Este é o incremento de cor que é executado na pintura de uma componente para outra
 
     for (int h = 0; h < 120; h++) {
         for (int w = 0; w < 160; w++) {
             if (originalMatrix[h][w] == 255 && !originalVisited[h][w]) {
-                if (targetColor >= 255) targetColor = 40;
-                targetColor += rate;
-                floodFill(originalMatrix, h, w, originalVisited, targetColor);
+                if (targetColor >= 255) targetColor = 40;   // Se a cor a ser pintada extrapolar o limite, resetar.
+                targetColor += rate;    // Cor da próxima componente conexa.
+                floodFill(originalMatrix, h, w, originalVisited, targetColor); // Pintamos a componente atual com targetColor.
             }
         }
     }
@@ -493,6 +437,7 @@ int runThreshold () {
     printf("\nconnectedComps = %d", connectedComps);
     printf("\ntargetColor = %d", targetColor);
 
+    // Inicamos a escrita no arquivo de output do algoritmo.
     fputs("P5\n", file2write);
     fputs("160 120\n", file2write);
     fputs("255\n", file2write);
@@ -509,7 +454,5 @@ int runThreshold () {
 }
 
 int main() {
-    //testThreshold();
-    runThreshold();
-    int matrix[160][120];
+    runAlgorithm();
 }
