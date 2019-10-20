@@ -325,6 +325,7 @@ void floodFill (int binaryMatrix[120][160], int x, int y, int visited[120][160],
             push(queue, currentX, currentY-1);
         }
     }
+    free(queue);
 }
 
 
@@ -344,7 +345,7 @@ int runAlgorithm() {
     FILE *file2write;	// Ponteiro do arquivo para escrita
     char path[256]="";  // Buffer usado para armazenar o caminho para o arquivo
     printf("Informe o nome do arquivo, ou seu caminho e nome: ");
-    fflush(stdout); //operação nao recomendada
+    fflush(stdout);
     scanf("%s",path);
     file2read = fopen(path,"r");
     file2write = fopen("out.pgm","w+");
