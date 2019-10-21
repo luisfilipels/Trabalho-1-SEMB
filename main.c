@@ -325,6 +325,8 @@ void floodFill (int binaryMatrix[120][160], int x, int y, int visited[120][160],
             push(queue, currentX, currentY-1);
         }
     }
+    free(queue->arrayX);
+    free(queue->arrayY);
     free(queue);
 }
 
