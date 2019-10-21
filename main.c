@@ -140,7 +140,7 @@ int Threshold(int *hist){
     double gavg;	//media global ponderada dos pixels
     double n1=0;	//numero de pixels da classe C1
     double n2=0;	//numero de pixels da classe C2
-    double m1=0;	//media ponderada dos pixels da classe C1 
+    double m1=0;	//media ponderada dos pixels da classe C1
     double m2=0;	//media ponderada dos pixels da classe C2
     double var;		//variancia entre as classes C1 e C2
     double maxVar=0;	//armazena a maior variância
@@ -151,25 +151,25 @@ int Threshold(int *hist){
     }
     gavg = gsum/total;
     for(int i=0;i<256;++i){
-         
+
 	n1 += hist[i];
-	//n1-Número de pixels cujas intensidades variam de 0 a i (Classe C1) 
-	
+	//n1-Número de pixels cujas intensidades variam de 0 a i (Classe C1)
+
 	m1 += (double)i*hist[i];
 	//m1-Soma usada para a média ponderada das intensidades dos pixels de C1
-	
+
 	n2 = total - n1;
 	//n2-Número de pixels cujas intensidades variam de i+1 a 255 (Classe C2)
-	
+
 	m2 = gsum - m1;
 	//m2-Soma usada para a média ponderada das intensidades dos pixels de C2
-	
+
 	var = (n1/total)*((m1/n1)-gavg)*((m1/(n1))-gavg)+
 		(n2/total)*((m2/n2)-gavg)*((m2/n2)-gavg);
 	//var-Variância entre classes para essa aplicação conforme descrito em:
 	//GONZALEZ, Rafael C. WOODS, Richard E. EDDINS, Steven L. Digital Image
 	//Processing using MATLAB. 2a edicao. Gatesmark Publishing. 2009.
-	
+
 	if(var > maxVar){
 	    maxVar = var;
 	    threshold = i;
@@ -325,6 +325,7 @@ void floodFill (int binaryMatrix[120][160], int x, int y, int visited[120][160],
             push(queue, currentX, currentY-1);
         }
     }
+    free(queue);
 }
 
 
@@ -344,7 +345,7 @@ int runAlgorithm() {
     FILE *file2write;	// Ponteiro do arquivo para escrita
     char path[256]="";  // Buffer usado para armazenar o caminho para o arquivo
     printf("Informe o nome do arquivo, ou seu caminho e nome: ");
-    fflush(stdout); //operação nao recomendada
+    fflush(stdout);
     scanf("%s",path);
     file2read = fopen(path,"r");
     file2write = fopen("out.pgm","w+");
@@ -421,14 +422,17 @@ int runAlgorithm() {
 
     // Esta é a cor da primeira componente conexa.
     int targetColor = 40;
+    if (connectedComps == 0) {
+        connectedComps = 1;
+    }
     int rate = (255 - 40) / connectedComps;
     // Este é o incremento de cor que é executado na pintura de uma componente para outra
 
     for (int h = 0; h < 120; h++) {
         for (int w = 0; w < 160; w++) {
             if (originalMatrix[h][w] == 255 && !originalVisited[h][w]) {
-                if (targetColor >= 255) targetColor = 40;   // Se a cor a ser pintada extrapolar o limite, resetar.
-                targetColor += rate;    // Cor da próxima componente conexa.
+                if (targetColor >= 255) targetColor = 40;                      // Se a cor a ser pintada extrapolar o limite, resetar.
+                targetColor += rate;                                           // Cor da próxima componente conexa.
                 floodFill(originalMatrix, h, w, originalVisited, targetColor); // Pintamos a componente atual com targetColor.
             }
         }
