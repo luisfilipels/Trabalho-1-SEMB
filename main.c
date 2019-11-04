@@ -515,7 +515,7 @@ int runAlgorithm() {
     }
 
     //fclose(file2read);
-    //fclose(file2write);
+    fclose(file2write);
     return 0;
 }
 
