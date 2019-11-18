@@ -1,3 +1,72 @@
+/*
+ * Arquivo: main.c
+ * Autores: Luis Filipe de Lima Sales (GitHub @luisfilipels) e Raimundo Azevedo (GitHub @Neto2047)
+ *
+ * Descrição: Este algoritmo consiste na execução do algoritmo Flood Fill sobre uma imagem PGM (em formato binário),
+ * passando por, antes disso, pelo processamento da imagem pelo algoritmo de Otsu (para determinação do nível ótimo de
+ * limiarização), por uma roodada de erosão e outra de dilatação, e por fim, pelo Flood Fill em si, que é utilizado para
+ * a contagem de componentes conexas que foram obtidas a partir da imagem binária obtida pelo algoritmo de Otsu. A imagem
+ * é, por fim, exportada para outro arquivo, out.pgm, que mostra o resultado dessas operações. Adaptado para o pic18f47k42.
+*/
+
+/*
+ * HISTÓRICO DE PRINCIPAIS EDIÇÕES:
+ * -------------------------------------------------
+ * Data: 8/10/19, 7:22 PM
+ * Autor: Luis Filipe e Raimundo Azevedo
+ * Motivo: Primeiro commit no Git. Base do código, e implementação de Otsu, implmentados dias antes.
+ * -------------------------------------------------
+ * Data: 9/10/19, 11:44 PM
+ * Autor: Luis Filipe
+ * Motivo: Flood Fill funcionando.
+ * -------------------------------------------------
+ * Data: 10/10/19, 8:14 PM
+ * Autor: Luis Filipe e Raimundo Azevedo
+ * Motivo: Comentários no código.
+ * -------------------------------------------------
+ * Data: 11/10/19, 2:47 PM
+ * Autor: Luis Filipe
+ * Motivo: Correções no algoritmo.
+ * -------------------------------------------------
+ * Data: 16/10/19, 8:16 PM
+ * Autor: Raimundo Azevedo
+ * Motivo: Lógica equivalente para a função erode.
+ * -------------------------------------------------
+ * Data: 16/10/19, 10:22 PM
+ * Autor: Raimundo Azevedo
+ * Motivo: Função Threshold melhorada. Adiçao de comentários em Otsu, Threshold e Flood Fill.
+ * -------------------------------------------------
+ * Data: 17/10/19, 10:42 PM
+ * Autor: Luis Filipe
+ * Motivo: Mais comentários. Algoritmo OK!
+ * -------------------------------------------------
+ * Data: 03/11/19, 10:40 PM
+ * Autor: Raimundo Azevedo
+ * Motivo: Diminuindo uso de memória com operações binárias, e liberação de memória.
+ * -------------------------------------------------
+ * Data: 07/11/19, 08:28 AM
+ * Autor: Raimundo Azevedo
+ * Motivo: Imagem armazenada no código. Diminuição do uso de memória.
+ * -------------------------------------------------
+ * Data: 12/11/19, 10:40 PM
+ * Autor: Raimundo Azevedo e Luis Filipe
+ * Motivo: Adição de uart.h e código para execução no PIC (Autoria do professor Elias Teodoro Silva Jr.).
+ * -------------------------------------------------
+ * Data: 17/11/19, 08:28 AM
+ * Autor: Raimundo Azevedo
+ * Motivo: Todas as funções funcionando no PIC.
+ * -------------------------------------------------
+ * Data: 18/11/19, 18:54 AM
+ * Autor: Luis Filipe
+ * Motivo: Comentários para execução no PIC.
+ * -------------------------------------------------
+*/
+
+/*----------------------------------------------INIT CONST IMAGE------------------------------------------------------*/
+
+/**
+ * Armazenamos a imagem toda na memória de programa, de modo a não consumir da memória de dados, que já é bem limitada.
+ */
 const unsigned char myImg[120][160] = {
         48,49,49,49,49,49,49,49,49,50,49,49,50,50,50,50,50,50,50,50,
         51,51,51,51,51,51,52,52,52,52,51,51,52,52,51,52,52,52,52,53,
@@ -960,11 +1029,11 @@ const unsigned char myImg[120][160] = {
         76,75,75,75,75,74,74,74,73,73,74,73,73,73,72,72,73,74,73,74,
         73,72,71,72,72,73,73,73,72,72,72,73,73,72,72,70,70,72,71,71
 };
+/*-----------------------------------------------END CONST IMAGE------------------------------------------------------*/
+
+/*---------------------------------------------INIT XC8 DIRECTIVES----------------------------------------------------*/
 /*
- * File:   main.c
- * Author: elias
- *
- * Created on May 20, 2019, 3:46 PM
+ * Esta seção de código é de autoria do professor Elias Teodoro Silva Jr.
  */
 
 // Production -> Set Configuration Bits;
@@ -1031,6 +1100,7 @@ const unsigned char myImg[120][160] = {
 // F_OSC
 //#define _XTAL_FREQ 64000000
 
+/*----------------------------------------------END XC8 DIRECTIVES----------------------------------------------------*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1041,6 +1111,15 @@ const unsigned char myImg[120][160] = {
 #include <time.h>
 //#include "uart.h"
 
+/*------------------------------------------------INIT BINARY OPS-----------------------------------------------------*/
+/**
+ * @brief A função setBit "seta" (configura para 1) um bit de um char no vetor *v, que passa a se comportar como uma
+ * matriz de dimensões 160x120. O bit é apontado pelas posições i e j.
+ *
+ * @param v Vetor de 2400 elementos que representa a matiz da imagem de dimensões 160x120
+ * @param i Linha da matriz
+ * @param j Coluna da matriz
+ */
 void setBit(unsigned char *v, unsigned char i, unsigned char j){
     unsigned short m=0, n=0;
     unsigned char mask = 1;
@@ -1050,6 +1129,14 @@ void setBit(unsigned char *v, unsigned char i, unsigned char j){
     v[m] = v[m] | mask;
 }
 
+/**
+ * @brief A função getBit funciona de maneira análoga às demais, sendo que nesse caso, se obtem o valor de determinado
+ * bit, retornando-o.
+ * @param v Vetor de 2400 elementos que representa a matiz da imagem de dimensões 160x120
+ * @param i Linha da matriz
+ * @param j Coluna da matriz
+ * @return Retorna o valor do bit na posição (i,j) do vetor v.
+ */
 unsigned char getBit(unsigned char *v, unsigned char i, unsigned char j){
     unsigned short m=0, n=0;
     unsigned char mask = 1;
@@ -1059,6 +1146,14 @@ unsigned char getBit(unsigned char *v, unsigned char i, unsigned char j){
     return ((v[m] & mask) >> n);
 }
 
+/**
+ * @brief A função resetBit "reseta" (configura para 0) um bit de um char no vetor *v, que passa a se comportar como uma
+ * matriz de dimensões 160x120. O bit é apontado pelas posições i e j.
+ *
+ * @param v Vetor de 2400 elementos que representa a matiz da imagem de dimensões 160x120
+ * @param i Linha da matriz
+ * @param j Coluna da matriz
+ */
 void resetBit(unsigned char *v, unsigned char i, unsigned char j){
     unsigned short m=0, n=0;
     unsigned char mask = 1;
@@ -1068,43 +1163,33 @@ void resetBit(unsigned char *v, unsigned char i, unsigned char j){
     mask = ~mask;
     v[m] = v[m] & mask;
 }
+/*------------------------------------------------END BINARY OPS------------------------------------------------------*/
 
-/*----------------------------------------------INIT QUEUE----------------------------------------------*/
+/*---------------------------------------- INIT GLOBAL VARIABLES & QUEUE----------------------------------------------*/
 
 /*
- * Devido Ã  restriÃ§Ã£o no uso de memÃ³ria com a execuÃ§Ã£o deste algoritmo, utilizamos uma fila baseada em array (ao invÃ©s
- * de lista ligada), pois assim alocamos a matriz unidimensional da fila apenas uma vez, em sua inicializaÃ§Ã£o na funÃ§Ã£o
- * Flood Fill.
+ * Para evitar passar referências dentro de funções a uma única fila que será utilizada no decorrer de toda a execução
+ * do algoritmo, extraímos o conteúdo da struct declarada previamente na Raspberry, e tornamos seus membros globais.
+ * Também tornamos a matriz de visitados e a da imagem binária em si globais, para que todos os elementos que usem muita
+ * memória fiquem visíveis 'à primeira vista'.
 */
 
-/*typedef struct Queue {
-    /*
-     * Utilizamos inteiros que representam a frente da fila, a sua traseira, e seu tamanho, para que nÃ£o sejam perdidos
-     * durante a manipulaÃ§Ã£o da fila.
-    */
-/*int front, rear, size;
-int capacity; // Capacidade mÃ¡xima da fila
-unsigned char arrayX[400]; // Ponteiro para a fila que armazena uma coordenada no eixo X da imagem.
-unsigned char arrayY[400]; // Idem, para o eixo Y.
-} Queue;
-*/
+short int capacity, front, rear, size; // Valores utilizados na fila
+unsigned char arrayX[400];   // Fila de coordenadas X
+unsigned char arrayY[400];   // Fila de coordenadas X
+unsigned char visited[2400]; // Matriz que indica quais pixeis já foram visitados, em diferentes ocasiões. Também é usada para armazenar a imagem binária em si (em erosão e dilatação).
+unsigned char img[2400];     // Matriz utilizada para armazenar uma imagem binária.
+unsigned short hist[256];
 
-short int capacity, front, rear, size;
-unsigned char arrayX[400];
-unsigned char arrayY[400];
-unsigned char visited[2400]; // Matriz que indica quais pixeis jÃ¡ foram visitados, em diferentes ocasiÃµes.
-unsigned char img[2400];
-
-/** @brief A funÃ§Ã£o isFull determina se a fila passada por parÃ¢metro estÃ¡ cheia ou nÃ£o.
-  * @param *queue Ponteiro para a fila
-  * @return Retorna 1 se a fila estÃ¡ cheia, 0 caso contrÃ¡rio.
+/** @brief A função isFull determina se a fila global está cheia ou não.
+  * @return Retorna 1 se a fila está cheia, 0 caso contrário.
   */
 int isFull () {
     return (size == capacity);
 }
 
 
-/** @brief A funÃ§Ã£o isEmpty determina se a fila passada por parÃ¢metro estÃ¡ vazia ou nÃ£o.
+/** @brief A função isFull determina se a fila global está vazia ou não.
   * @param *queue Ponteiro para a fila
   * @return Retorna 1 se a fila estÃ¡ vazia, 0 caso contrÃ¡rio.
   */
@@ -1112,63 +1197,70 @@ int isEmpty () {
     return (size == 0);
 }
 
-/** @brief A funÃ§Ã£o push insere dois elementos, um na fila do eixo X, outro na fila do eixo Y.
-  * @param *queue Ponteiro para a fila que se deseja fazer push.
-  * @param X Inteiro a ser inserido em X.
-  * @param Y Inteiro a ser inserido em Y.
+/** @brief A função push insere dois elementos, um na fila do eixo X, outro na fila do eixo Y.
+  * @param X unsigned char a ser inserido em X.
+  * @param Y unsigned char a ser inserido em Y.
   */
 void push (unsigned char X, unsigned char Y) {
-    if (isFull()) return;  // NÃ£o fazer nada se estiver cheia.
-    rear = (rear+1) % capacity; // Array circular. A traseira Ã© incrementada, mÃ³dulo capacidade.
+    if (isFull()) return;  // Não fazer nada se estiver cheia.
+    rear = (rear+1) % capacity; // Array circular. A traseira é incrementada, módulo capacidade.
     arrayX[rear] = X; // Inserimos X em arrayX.
     arrayY[rear] = Y; // Inserimos Y em arrayY.
     size = size + 1; // Incrementamos o tamanho da fila.
 }
 
-/** @brief dequeue Retira da fila elementos na frente da fila. Retorna esses elementos por referÃªncia.
+/** @brief dequeue retira da fila elementos na frente da fila. Retorna esses elementos por referência.
   * @param *x ponteiro para o elemento do eixo X a ser retornado
   * @param *y ponteiro para o elemento do eixo Y a ser retornado
   */
 void dequeue (unsigned char *x, unsigned char *y) {
-    if (isEmpty()) { // NÃ£o fazer nada se estiver vazia.
+    if (isEmpty()) { // Não fazer nada se estiver vazia.
         return;
     }
-    *x = arrayX[front]; // x recebe o valor que estava na frente da fila
-    *y = arrayY[front]; // Idem para y.
+    *x = arrayX[front];           // x recebe o valor que estava na frente da fila
+    *y = arrayY[front];           // Idem para y.
     front = (front + 1)%capacity; // Incrementamos a fila em 1.
-    size = size - 1; // Diminuimos em 1 o tamanho da fila.
+    size = size - 1;              // Diminuimos em 1 o tamanho da fila.
 }
+/*------------------------------------------END GLOBAL VARIABLES & QUEUE----------------------------------------------*/
 
-/*------------------------------------------INIT FLOOD FILL-------------------------------------------*/
+/*------------------------------------------INIT FLOOD FILL & TRANSFORMS----------------------------------------------*/
 
-/** @brief A funÃ§Ã£o isValid serve tanto para determinar se valores x e y estÃ£o dentro dos limites de
-  * uma imagem 160x120, como para verificar se a posiÃ§Ã£o indicada por esses dois nÃºmeros nÃ£o foi jÃ¡
-  * utilizada, e para se certificar que o valor dessa posiÃ§Ã£o Ã© o mesmo valor que um certo comp.
-  * @param binaryMatrix[120][160] Matriz binÃ¡ria representando a imagem passada a limiarizaÃ§Ã£o.
-  * @param x PosiÃ§Ã£o x na matriz
-  * @param y PosiÃ§Ã£o y na matriz
-  * @param visited[120][160] Matriz que indica se cada uma de suas posiÃ§Ãµes jÃ¡ foi visitada no Flood Fill
+/** @brief A função isValid serve tanto para determinar se valores x e y estÃ£o dentro dos limites de
+  * uma imagem 160x120, como para verificar se a posição indicada por esses dois números não foi já
+  * utilizada, e para se certificar que o valor dessa posição é o mesmo valor que um certo comp.
+  *
+  * @param binaryMatrix[2400] Matriz binária representando a imagem passada a limiarização.
+  * @param x posição x na matriz
+  * @param y posição y na matriz
+  * @param visited[2400] Matriz que indica se cada uma de suas posições já foi visitada no Flood Fill
   * @param comp Valor a ser comparado.
   */
 int isValid (unsigned char binaryMatrix[2400], unsigned char x, unsigned char y, unsigned char visited[2400], unsigned char comp) {
-    // Se x e y forem posiÃ§Ãµes vÃ¡lidas, com um valor correto e que nÃ£o tenham sido visitadas, retorne 1.
+    // Se x e y forem posições válidas, com um valor correto e que não tenham sido visitadas, retorne 1.
     if (x >= 0 && x < 120 && y >= 0 && y < 160 && (getBit(binaryMatrix,x,y) == comp) && (getBit(visited,x,y)==0)) {
         return 1;
     }
     return 0;
 }
 
+/** @brief A função isValidTransform serve tal como a função isValid, porém é utilizada apenas nas transformações de
+  * erosão e dilatação, e como tal, não precisam da matriz de visitados.
+  *
+  * @param binaryMatrix[2400] Matriz binária representando a imagem passada a limiarização.
+  * @param x posição x na matriz
+  * @param y posição y na matriz
+  * @param comp Valor a ser comparado.
+  */
 int isValidTransform (unsigned char binaryMatrix[2400], unsigned char x, unsigned char y, unsigned char comp) {
-    // Se x e y forem posiÃ§Ãµes vÃ¡lidas, com um valor correto e que nÃ£o tenham sido visitadas, retorne 1.
+    // Se x e y forem posições válidas, com um valor correto, retorne 1.
     if (x >= 0 && x < 120 && y >= 0 && y < 160 && (getBit(binaryMatrix,x,y) == comp)) {
         return 1;
     }
     return 0;
 }
 
-
-
-/** @brief A funÃ§Ã£o erode aplica uma transformaÃ§Ã£o de erosÃ£o na imagem, que consiste em tirar um pixel
+/** @brief A função erode aplica uma transformação de erosão na imagem, que consiste em tirar um pixel
   * do exterior de cada "objeto". Por exemplo:
   *                 0 0 0 0 0 0 0               0 0 0 0 0 0 0
   *                 1 0 0 1 1 0 0               0 0 0 0 0 0 0
@@ -1176,17 +1268,17 @@ int isValidTransform (unsigned char binaryMatrix[2400], unsigned char x, unsigne
   *                 0 0 1 1 1 1 0               0 0 0 1 1 0 0
   *                 0 0 0 1 1 0 0               0 0 0 0 0 0 0
   *                 0 0 0 0 0 0 0               0 0 0 0 0 0 0
-  * Com a execuÃ§Ã£o dessa funÃ§Ã£o, conseguimos eliminar pixels individuais que fiquem "soltos" na imagem,
-  * para que nÃ£o sejam considerados uma componente conexa. Ã executada antes do dilate, para limpar a imagem.
-  * @param matrix1[120][160] Matriz resultante da operaÃ§Ã£o, passada por referÃªncia.
-  * @param visited[120][160] Matriz de visitados
+  * Com a execução dessa função, conseguimos eliminar pixels individuais que fiquem "soltos" na imagem,
+  * para que não sejam considerados uma componente conexa. É executada antes do dilate, para limpar a imagem.
+  * @param matrix1[2400] Matriz resultante da operação, passada por referência.
+  * @param cpImg[2400] Matriz utilizada para fazer o 'backup' de matrix1.
   */
 void erode (unsigned char matrix1[2400], unsigned char cpImg[2400]) {
     for (int i = 0; i < 2400; i++) {
         cpImg[i] = matrix1[i];
-        /* Armazenamos os valores originais, para comparaÃ§Ã£o posterior.
-         * Isso Ã© nececessÃ¡rio para que faÃ§amos a erosÃ£o sobre os pixels da imagem original, nÃ£o da imagem
-         * alterada pela erosÃ£o.
+        /* Armazenamos os valores originais, para comparação posterior.
+         * Isso é necessário para que façamos a erosão sobre os pixels da imagem original, não da imagem
+         * alterada pela erosão.
          */
     }
     for (int h = 0; h < 120; h++) {
@@ -1196,8 +1288,8 @@ void erode (unsigned char matrix1[2400], unsigned char cpImg[2400]) {
                       isValidTransform(cpImg, h, w+1,0) ||
                       isValidTransform(cpImg, h+1, w,0) ||
                       isValidTransform(cpImg, h-1, w,0) //||
-                    /* As verificaÃ§Ãµes anteriores servem para determinar se algum dos vizinhos de um pixel branco
-                     * (vizinhos apenas em cima e em baixo, esquerda e direita), Ã© preto. Se for, o pixel atual
+                    /* As verificações anteriores servem para determinar se algum dos vizinhos de um pixel branco
+                     * (vizinhos apenas em cima e em baixo, esquerda e direita), é preto. Se for, o pixel atual
                      * fica preto, pois isso significa que estamos na borda de um objeto.
                      */
                         ) {
@@ -1209,24 +1301,24 @@ void erode (unsigned char matrix1[2400], unsigned char cpImg[2400]) {
     }
 }
 
-/** @brief A funÃ§Ã£o dilate Ã© anÃ¡loga Ã  erode, fazendo, porÃ©m, o contrÃ¡rio. Ou seja, aplica uma transformaÃ§Ã£o de
-  * dilataÃ§Ã£o na imagem, que consiste em pintar de branco cada pixel do exterior imediato de cada "objeto". Exemplo:
+/** @brief A função dilate é análoga à erode, fazendo, porém, o contrário. Ou seja, aplica uma transformação de
+  * dilatação na imagem, que consiste em pintar de branco cada pixel do exterior imediato de cada "objeto". Exemplo:
   *                 0 0 0 0 0 0 0               1 0 0 0 0 0 0
   *                 1 0 0 0 0 0 0               1 1 0 1 1 0 0
   *                 0 0 0 1 1 0 0     ---->     1 0 1 1 1 1 0
   *                 0 0 0 1 1 0 0               0 0 1 1 1 1 0
   *                 0 0 0 0 0 0 0               0 0 0 1 1 0 0
   *                 0 0 0 0 0 0 0               0 0 0 0 0 0 0
-  * Com a execuÃ§Ã£o dessa funÃ§Ã£o, conseguimos restaurar ao tamanho original cada objeto da imagem, apÃ³s a execuÃ§Ã£o do dilate.
-  * @param matrix1[120][160] Matriz resultante da operaÃ§Ã£o, passada por referÃªncia.
-  * @param visited[120][160] Matriz de visitados
+  * Com a execução dessa função, conseguimos restaurar ao tamanho original cada objeto da imagem, após a execução do dilate.
+  * @param matrix1[2400] Matriz resultante da operação, passada por referência.
+  * @param cpImg[2400] Matriz utilizada para fazer o 'backup' de matrix1.
   */
 void dilate (unsigned char matrix1[2400], unsigned char cpImg[2400]) {
     for (int h = 0; h < 2400; h++) {
         cpImg[h] = matrix1[h];
-        /* Armazenamos os valores originais, para comparaÃ§Ã£o posterior.
-         * Isso Ã© nececessÃ¡rio para que faÃ§amos a erosÃ£o sobre os pixels da imagem original, nÃ£o da imagem
-         * alterada pela erosÃ£o.
+        /* Armazenamos os valores originais, para comparação posterior.
+         * Isso é necessário para que façamos a erosão sobre os pixels da imagem original, não da imagem
+         * alterada pela erosão.
          */
     }
     for (int h = 0; h < 120; ++h) {
@@ -1236,7 +1328,7 @@ void dilate (unsigned char matrix1[2400], unsigned char cpImg[2400]) {
                     isValidTransform(cpImg, h, w+1, 1) ||
                     isValidTransform(cpImg, h+1, w, 1) ||
                     isValidTransform(cpImg, h-1, w, 1) // ||
-                    /* As verificaÃ§Ãµes anteriores servem para determinar se algum vizinho de um pixel preto Ã©
+                    /* As verificações anteriores servem para determinar se algum vizinho de um pixel preto é
                      * branco. Se for, pintamos o pixel atual de branco.
                      */
                         ) {
@@ -1250,15 +1342,14 @@ void dilate (unsigned char matrix1[2400], unsigned char cpImg[2400]) {
 }
 
 /** @brief floodFill determina a area conectada a um dado pixel da imagem obtida.
-  * Se o pixel vizinho Ã© de foreground (255) este Ã© preenchido com targetColor e
+  * Se o pixel vizinho é de foreground (255) este é preenchido com targetColor e
   * inserido na fila sendo posteriormente marcado como visitado e removido da
-  * fila ao verificar seus vizinhos. A funÃ§Ã£o encerra quando a fila for vazia.
+  * fila ao verificar seus vizinhos. A função encerra quando a fila for vazia.
   *
-  * @param binaryMatrix[120][160] matriz de pixels da imagem binÃ¡ria
-  * @param x indica a posicÃ£o do pixel relativa Ã s linhas da matriz
-  * @param y indica a posiÃ§Ã£o do pixel relativas Ã s colunas da matriz
-  * @param visited[120][160] visited[x][y] indica se o pixel (x,y) foi visitado (1) ou nÃ£o (0)
-  * @param targetColor inteiro entre 0 e 255 indicando uma cor em gray scale para preenchimento
+  * @param binaryMatrix[2400] matriz de pixels da imagem binária
+  * @param x indica a posicão do pixel relativa às linhas da matriz
+  * @param y indica a posição do pixel relativas às colunas da matriz
+  * @param visited[2400] indica se o pixel (x,y) foi visitado (1) ou não (0)
   */
 void floodFill (unsigned char binaryMatrix[2400], unsigned char x, unsigned char y, unsigned char visited[2400]/*, int targetColor*/) {
     capacity = 400;
@@ -1268,48 +1359,54 @@ void floodFill (unsigned char binaryMatrix[2400], unsigned char x, unsigned char
     unsigned char currentX = 0;
     unsigned char currentY = 0;
     while (!isEmpty()) {
-        dequeue(&currentX, &currentY);//remove da fila e atualiza a posicao atual
-        //binaryMatrix[currentX][currentY] = targetColor;//preenche o pixel atual com targetColor
+        dequeue(&currentX, &currentY);              //remove da fila e atualiza a posicao atual
         resetBit(binaryMatrix,currentX,currentY);
-        setBit(visited,currentX,currentY);//marca o pixel como visitado
-        //verifica vizinho acima, se ele for pixel de foreground e nÃ£o
-        //foi visitado Ã© preenchido e inserido na fila
+        setBit(visited,currentX,currentY);          //marca o pixel como visitado
+
+        //verifica vizinho acima, se ele for pixel de foreground e não
+        //foi visitado, é preenchido e inserido na fila
         if (isValid(binaryMatrix, currentX+1, currentY, visited, 1)){
-            //binaryMatrix[currentX+1][currentY] = targetColor;
             resetBit(binaryMatrix,currentX+1,currentY);
             push(currentX+1, currentY);
         }
-        //verifica vizinho abaixo, anÃ¡logo ao caso anterior
+        //verifica vizinho abaixo, análogo ao caso anterior
         if (isValid(binaryMatrix, currentX-1, currentY, visited, 1)){
-            //binaryMatrix[currentX-1][currentY] = targetColor;
             resetBit(binaryMatrix,currentX-1,currentY);
             push(currentX-1, currentY);
         }
-        //verifica vizinho a direita, anÃ¡logo ao caso anterior
+        //verifica vizinho a direita, análogo ao caso anterior
         if (isValid(binaryMatrix, currentX, currentY+1, visited, 1)){
-            //binaryMatrix[currentX][currentY+1] = targetColor;
             resetBit(binaryMatrix,currentX,currentY+1);
             push(currentX, currentY+1);
         }
-        //verifica vizinho a esquerda, anÃ¡logo ao caso anterior
+        //verifica vizinho a esquerda, análogo ao caso anterior
         if (isValid(binaryMatrix, currentX, currentY-1, visited, 1)){
-            //binaryMatrix[currentX][currentY-1] = targetColor;
             resetBit(binaryMatrix,currentX,currentY-1);
             push(currentX, currentY-1);
         }
     }
 }
+
+/*------------------------------------------END FLOOD FILL & TRANSFORMS-----------------------------------------------*/
+
+/*----------------------------------------------INIT OTSU THRESHOLD---------------------------------------------------*/
+
+/** @brief A função Threshold executa o algoritmo de Otsu sobre um histograma,
+  *        e com isso, determina o valor ótimo de limiarização para a imagem.
+  * @param *hist Ponteiro para array que representa o histograma dos pixels de uma imagem
+  * @return Retorna um inteiro representando o valor ótimo de limiarização para uma imagem.
+  */
 int Threshold(unsigned short *hist){
-    int total = 120*160;
-    double gsum = 0;
-    double gavg;
-    double n1=0;
-    double n2=0;
-    double m1=0;
-    double m2=0;
-    double var;
-    double maxVar=0;
-    int threshold;
+    int total = 160*120;//quantidade de pixels da imagem
+    double gsum = 0;	//soma ponderada global das ocorrencias do pixel por sua intensidade
+    double gavg;	    //media global ponderada dos pixels
+    double n1=0;	    //numero de pixels da classe C1
+    double n2=0;	    //numero de pixels da classe C2
+    double m1=0;	    //media ponderada dos pixels da classe C1
+    double m2=0;	    //media ponderada dos pixels da classe C2
+    double var;		    //variancia entre as classes C1 e C2
+    double maxVar=0;	//armazena a maior variância
+    int threshold;	    //valor para o qual as classes C1 e C2 possuem variância máxima
 
     int i;
     for(i=0;i<256;i++){
@@ -1318,16 +1415,19 @@ int Threshold(unsigned short *hist){
 
     gavg = gsum/total;
     for(i=0;i<256;++i){
-        n1 += hist[i];
+        n1 += hist[i];               //n1-Número de pixels cujas intensidades variam de 0 a i (Classe C1)
 
-        m1 += (double)i*hist[i];
+        m1 += (double)i*hist[i];     //m1-Soma usada para a média ponderada das intensidades dos pixels de C1
 
-        n2 = total - n1;
+        n2 = total - n1;             //n2-Número de pixels cujas intensidades variam de i+1 a 255 (Classe C2)
 
-        m2 = gsum - m1;
+        m2 = gsum - m1;              //m2-Soma usada para a média ponderada das intensidades dos pixels de C2
 
         var = (n1/total)*((m1/n1)-gavg)*((m1/n1)-gavg)+
               (n2/total)*((m2/n2)-gavg)*((m2/n2)-gavg);
+        //var-Variância entre classes para essa aplicação conforme descrito em:
+        //GONZALEZ, Rafael C. WOODS, Richard E. EDDINS, Steven L. Digital Image
+        //Processing using MATLAB. 2a edicao. Gatesmark Publishing. 2009.
 
         if(var > maxVar){
             maxVar = var;
@@ -1337,28 +1437,24 @@ int Threshold(unsigned short *hist){
     return threshold;
 }
 
+/*----------------------------------------------END OTSU THRESHOLD----------------------------------------------------*/
 
 /**
- * @brief A funÃ§Ã£o runAlgorithm executa todos os algoritmos jÃ¡ desenvolvidos. Primeiro Ã© lido o caminho para um arquivo
- * pgm que se deseja que se execute as funÃ§Ãµes. Essa imagem Ã© lida e armazenada na memÃ³ria. Enquanto ela estÃ¡ sendo lida,
- * o histograma da imagem tambÃ©m estÃ¡ sendo gerado, histograma este que Ã© posteriormente passado para a funÃ§Ã£o Threshold.
- * Feito isso, e com o valor Ã³timo de limiarizaÃ§Ã£o obtido, gera-se uma imagem binÃ¡ria que posteriormente passa por erosÃ£o
- * e dilataÃ§Ã£o. Por fim, o Flood Fill Ã© executado duas vezes, na primeira vez para se contar a quantidade de componentes
- * conexas, e na segunda para pintar essas componentes de forma a haver uma distribuiÃ§Ã£o uniforme de cores entre todas
- * as componentes.
+ * @brief A função runAlgorithm executa todos os algoritmos já desenvolvidos. Primeiro é gerado  um histograma da imagem,
+ * histograma este que é posteriormente passado para a função Threshold. Feito isso, e com o valor ótimo de limiarização
+ * obtido, gera-se uma imagem binária que posteriormente passa por erosão e dilatação. Por fim, o Flood Fill é executado,
+ * para se contar a quantidade de componentes.
  * @return
  */
 
-unsigned short hist[256];
 void runAlgorithm() {
-    int i, h, w;
+    int i, h, w;    // Variáveis utilizadas como contadores.
 
-    for(i=0;i<256;++i) hist[i] = 0;
+    for(i=0;i<256;++i) hist[i] = 0;   // Inicialização do histograma.
 
-    /*for(i=0;i<2400;++i){
-        img[i] = 0;
-    }*/
     i = 0;
+    // Neste laço for, tanto se cria o histograma com seu valor devido (a partir da imagem constante), como se inicializa
+    // a imagem binária.
     for(h=0;h<120;++h){
         for(w=0;w<160;w+=8){
             ++hist[myImg[h][w]];
@@ -1374,8 +1470,7 @@ void runAlgorithm() {
         }
     }
 
-    i = Threshold(hist);
-    // printf("threshold: %d\n",i);
+    i = Threshold(hist);  // Obtemos o valor ótimo de limiarização por Otsu.
 
     for(h=0;h<120;++h){
         for(w=0;w<160;++w){
