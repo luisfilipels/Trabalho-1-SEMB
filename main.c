@@ -6,7 +6,7 @@
  * passando por, antes disso, pelo processamento da imagem pelo algoritmo de Otsu (para determinação do nível ótimo de
  * limiarização), por uma roodada de erosão e outra de dilatação, e por fim, pelo Flood Fill em si, que é utilizado para
  * a contagem de componentes conexas que foram obtidas a partir da imagem binária obtida pelo algoritmo de Otsu. A imagem
- * é, por fim, exportada para outro arquivo, out.pgm, que mostra o resultado dessas operações.
+ * é, por fim, exportada para outro arquivo, out.pgm, que mostra o resultado dessas operações. Adaptado para pic18f47k42.
 */
 
 /*
