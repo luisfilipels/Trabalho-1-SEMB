@@ -11,25 +11,31 @@ unsigned char getBit(unsigned char *v, unsigned char i, unsigned char j){
 }
 
 int main(){
+  printf("iniciando");
   unsigned char img[2400];
-  FILE *frd
-  FILE *fwr;
+  FILE *frd;
   unsigned char c;
   frd = fopen("arquivo.txt","r"); //arquivo contendo a saida
-  fwr = fopen("img.pgm","w");	  //arquivo onde a imagem sera gravada
+
   for(int i=0;i<2400;++i){
-      img[i] = fgetc(frd);
+    fscanf(frd, "%d ", &img[i]);
   }
-  fclose(frd);
-  fprintf(fwr,"P5\n160 120\n255\n");
+
+  FILE *fp;
+
+  fp = fopen("img.pgm", "w+");
+  fprintf(fp, "P5\n160 120\n255\n");
+  printf("Check0");
   for(int i=0;i<120;++i){
     for(int j=0;j<160;++j){
       if(getBit(img,i,j) == 1){
-        fprintf(fwr,"%c",255);
+        fprintf(fp,"%d ", 255);
       }else{
-	fprintf(fwr,"%c",0);
+	    fprintf(fp,"%d ", 0);
       }
     }
   }
+  fclose(fp);
+  fclose(frd);
   return 0;
 }
