@@ -24,7 +24,7 @@ int main(){
   FILE *fp;
 
   fp = fopen("img.pgm", "w+");
-  fprintf(fp, "P5\n160 120\n255\n");
+  fprintf(fp, "P2\n160 120\n255\n");
   printf("Check0");
   for(int i=0;i<120;++i){
     for(int j=0;j<160;++j){
