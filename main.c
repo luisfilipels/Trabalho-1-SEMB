@@ -5,17 +5,28 @@
 #include <limits.h>
 #include <stdint.h>
 #include <time.h>
-//#include "uart.h"
+#include "uart.h"
+#include <xc.h>
 
 /*
  * Arquivo: main.c
  * Autores: Luis Filipe de Lima Sales (GitHub @luisfilipels) e Raimundo Azevedo (GitHub @Neto2047)
  *
- * Descrição: Este algoritmo consiste na execução do algoritmo Flood Fill sobre uma imagem PGM (em formato binário),
- * passando por, antes disso, pelo processamento da imagem pelo algoritmo de Otsu (para determinação do nível ótimo de
- * limiarização), por uma roodada de erosão e outra de dilatação, e por fim, pelo Flood Fill em si, que é utilizado para
- * a contagem de componentes conexas que foram obtidas a partir da imagem binária obtida pelo algoritmo de Otsu. A imagem
- * é, por fim, exportada para outro arquivo, out.pgm, que mostra o resultado dessas operações. Adaptado para o pic18f47k42.
+ * Descrição: Este algoritmo consiste na execução do algoritmo Flood Fill sobre uma imagem armazenada no programa como,
+ * constante, passando por, antes disso, por compressão de dados e pelo processamento da imagem pelo algoritmo de Otsu
+ * (para determinação do nível ótimo de limiarização), por uma rodada de erosão e outra de dilatação, e por fim, pelo
+ * Flood Fill em si, que é utilizado para a contagem de componentes conexas que foram obtidas a partir da imagem binária
+ * obtida pelo algoritmo de Otsu. A imagem é, por fim, printada na serial, caso desejado, junto com a contagem de
+ * componentes conexas. Adaptado para execução no pic18f47k42.
+ *
+ * Modo de uso: Na seção CONST IMAGE, descomentar uma das matrizes para executar o algoritmo sobre ela. Compilar o mesmo
+ * no MPLAB X, em associação com o arquivo uart.h. A saída do código é exibida pelo terminal, indicando o número de
+ * componentes conexas da imagem que foi utilizada no algoritmo. Se for desejado ver a imagem resultante, compilar o
+ * arquivo "imgwr.c" para gerar a imagem. Para tal, compilar o arquivo e copiar o conteúdo da serial e colocar num arquivo
+ * de nome "arquivo.txt", na mesma pasta do executável, e executá-lo. Testado no pic18f47k42.
+ *
+ * Direitos de uso: Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+ * Disponível em: https://creativecommons.org/licenses/by-nc/4.0/
 */
 
 /*
@@ -101,54 +112,54 @@ unsigned char myImg[120][160] = {109,110,110,110,110,110,110,110,110,110,110,110
 // 'C' source line config statements
 
 // CONFIG1L
-//#pragma config FEXTOSC = OFF    // External Oscillator Selection (Oscillator not enabled)
-//#pragma config RSTOSC = HFINTOSC_64MHZ// Reset Oscillator Selection (HFINTOSC with HFFRQ = 64 MHz and CDIV = 1:1)
+#pragma config FEXTOSC = OFF    // External Oscillator Selection (Oscillator not enabled)
+#pragma config RSTOSC = HFINTOSC_64MHZ// Reset Oscillator Selection (HFINTOSC with HFFRQ = 64 MHz and CDIV = 1:1)
 
 // CONFIG1H
-//#pragma config CLKOUTEN = OFF   // Clock out Enable bit (CLKOUT function is disabled)
-//#pragma config PR1WAY = ON      // PRLOCKED One-Way Set Enable bit (PRLOCK bit can be cleared and set only once)
-//#pragma config CSWEN = ON       // Clock Switch Enable bit (Writing to NOSC and NDIV is allowed)
-//#pragma config FCMEN = ON       // Fail-Safe Clock Monitor Enable bit (Fail-Safe Clock Monitor enabled)
+#pragma config CLKOUTEN = OFF   // Clock out Enable bit (CLKOUT function is disabled)
+#pragma config PR1WAY = ON      // PRLOCKED One-Way Set Enable bit (PRLOCK bit can be cleared and set only once)
+#pragma config CSWEN = ON       // Clock Switch Enable bit (Writing to NOSC and NDIV is allowed)
+#pragma config FCMEN = ON       // Fail-Safe Clock Monitor Enable bit (Fail-Safe Clock Monitor enabled)
 
 // CONFIG2L
-//#pragma config MCLRE = EXTMCLR  // MCLR Enable bit (If LVP = 0, MCLR pin is MCLR; If LVP = 1, RE3 pin function is MCLR )
-//#pragma config PWRTS = PWRT_OFF // Power-up timer selection bits (PWRT is disabled)
-//#pragma config MVECEN = ON      // Multi-vector enable bit (Multi-vector enabled, Vector table used for interrupts)
-//#pragma config IVT1WAY = ON     // IVTLOCK bit One-way set enable bit (IVTLOCK bit can be cleared and set only once)
-//#pragma config LPBOREN = OFF    // Low Power BOR Enable bit (ULPBOR disabled)
-//#pragma config BOREN = SBORDIS  // Brown-out Reset Enable bits (Brown-out Reset enabled , SBOREN bit is ignored)
+#pragma config MCLRE = EXTMCLR  // MCLR Enable bit (If LVP = 0, MCLR pin is MCLR; If LVP = 1, RE3 pin function is MCLR )
+#pragma config PWRTS = PWRT_OFF // Power-up timer selection bits (PWRT is disabled)
+#pragma config MVECEN = ON      // Multi-vector enable bit (Multi-vector enabled, Vector table used for interrupts)
+#pragma config IVT1WAY = ON     // IVTLOCK bit One-way set enable bit (IVTLOCK bit can be cleared and set only once)
+#pragma config LPBOREN = OFF    // Low Power BOR Enable bit (ULPBOR disabled)
+#pragma config BOREN = SBORDIS  // Brown-out Reset Enable bits (Brown-out Reset enabled , SBOREN bit is ignored)
 
 // CONFIG2H
-//#pragma config BORV = VBOR_2P45 // Brown-out Reset Voltage Selection bits (Brown-out Reset Voltage (VBOR) set to 2.45V)
-//#pragma config ZCD = OFF        // ZCD Disable bit (ZCD disabled. ZCD can be enabled by setting the ZCDSEN bit of ZCDCON)
-//#pragma config PPS1WAY = ON     // PPSLOCK bit One-Way Set Enable bit (PPSLOCK bit can be cleared and set only once; PPS registers remain locked after one clear/set cycle)
-//#pragma config STVREN = ON      // Stack Full/Underflow Reset Enable bit (Stack full/underflow will cause Reset)
-//#pragma config DEBUG = OFF      // Debugger Enable bit (Background debugger disabled)
-//#pragma config XINST = OFF      // Extended Instruction Set Enable bit (Extended Instruction Set and Indexed Addressing Mode disabled)
+#pragma config BORV = VBOR_2P45 // Brown-out Reset Voltage Selection bits (Brown-out Reset Voltage (VBOR) set to 2.45V)
+#pragma config ZCD = OFF        // ZCD Disable bit (ZCD disabled. ZCD can be enabled by setting the ZCDSEN bit of ZCDCON)
+#pragma config PPS1WAY = ON     // PPSLOCK bit One-Way Set Enable bit (PPSLOCK bit can be cleared and set only once; PPS registers remain locked after one clear/set cycle)
+#pragma config STVREN = ON      // Stack Full/Underflow Reset Enable bit (Stack full/underflow will cause Reset)
+#pragma config DEBUG = OFF      // Debugger Enable bit (Background debugger disabled)
+#pragma config XINST = OFF      // Extended Instruction Set Enable bit (Extended Instruction Set and Indexed Addressing Mode disabled)
 
 // CONFIG3L
-//#pragma config WDTCPS = WDTCPS_31// WDT Period selection bits (Divider ratio 1:65536; software control of WDTPS)
-//#pragma config WDTE = OFF        // WDT Disabled; SWDTEN is ignored
+#pragma config WDTCPS = WDTCPS_31// WDT Period selection bits (Divider ratio 1:65536; software control of WDTPS)
+#pragma config WDTE = OFF        // WDT Disabled; SWDTEN is ignored
 
 // CONFIG3H
-//#pragma config WDTCWS = WDTCWS_7// WDT Window Select bits (window always open (100%); software control; keyed access not required)
-//#pragma config WDTCCS = SC      // WDT input clock selector (Software Control)
+#pragma config WDTCWS = WDTCWS_7// WDT Window Select bits (window always open (100%); software control; keyed access not required)
+#pragma config WDTCCS = SC      // WDT input clock selector (Software Control)
 
 // CONFIG4L
-//#pragma config BBSIZE = BBSIZE_512// Boot Block Size selection bits (Boot Block size is 512 words)
-//#pragma config BBEN = OFF       // Boot Block enable bit (Boot block disabled)
-//#pragma config SAFEN = OFF      // Storage Area Flash enable bit (SAF disabled)
-//#pragma config WRTAPP = OFF     // Application Block write protection bit (Application Block not write protected)
+#pragma config BBSIZE = BBSIZE_512// Boot Block Size selection bits (Boot Block size is 512 words)
+#pragma config BBEN = OFF       // Boot Block enable bit (Boot block disabled)
+#pragma config SAFEN = OFF      // Storage Area Flash enable bit (SAF disabled)
+#pragma config WRTAPP = OFF     // Application Block write protection bit (Application Block not write protected)
 
 // CONFIG4
-//#pragma config WRTB = OFF       // Configuration Register Write Protection bit (Configuration registers (300000-30000Bh) not write-protected)
-//#pragma config WRTC = OFF       // Boot Block Write Protection bit (Boot Block (000000-0007FFh) not write-protected)
-//#pragma config WRTD = OFF       // Data EEPROM Write Protection bit (Data EEPROM not write-protected)
-//#pragma config WRTSAF = OFF     // SAF Write protection bit (SAF not Write Protected)
-//#pragma config LVP = ON         // Low Voltage Programming Enable bit (Low voltage programming enabled. MCLR/VPP pin function is MCLR. MCLRE configuration bit is ignored)
+#pragma config WRTB = OFF       // Configuration Register Write Protection bit (Configuration registers (300000-30000Bh) not write-protected)
+#pragma config WRTC = OFF       // Boot Block Write Protection bit (Boot Block (000000-0007FFh) not write-protected)
+#pragma config WRTD = OFF       // Data EEPROM Write Protection bit (Data EEPROM not write-protected)
+#pragma config WRTSAF = OFF     // SAF Write protection bit (SAF not Write Protected)
+#pragma config LVP = ON         // Low Voltage Programming Enable bit (Low voltage programming enabled. MCLR/VPP pin function is MCLR. MCLRE configuration bit is ignored)
 
 // CONFIG5L
-//#pragma config CP = OFF         // PFM and Data EEPROM Code Protection bit (PFM and Data EEPROM code protection disabled)
+#pragma config CP = OFF         // PFM and Data EEPROM Code Protection bit (PFM and Data EEPROM code protection disabled)
 
 // CONFIG5H
 
@@ -158,7 +169,7 @@ unsigned char myImg[120][160] = {109,110,110,110,110,110,110,110,110,110,110,110
 //#include <xc.h>
 
 // F_OSC
-//#define _XTAL_FREQ 64000000
+#define _XTAL_FREQ 64000000
 
 /*----------------------------------------------END XC8 DIRECTIVES----------------------------------------------------*/
 
@@ -230,7 +241,7 @@ unsigned char arrayX[400];   // Fila de coordenadas X
 unsigned char arrayY[400];   // Fila de coordenadas X
 unsigned char visited[2400]; // Matriz que indica quais pixeis já foram visitados, em diferentes ocasiões. Também é usada para armazenar a imagem binária em si (em erosão e dilatação).
 unsigned char img[2400];     // Matriz utilizada para armazenar uma imagem binária.
-unsigned short hist[256];
+unsigned short hist[256];    // Matriz do histograma.
 
 /** @brief A função isFull determina se a fila global está cheia ou não.
   * @return Retorna 1 se a fila está cheia, 0 caso contrário.
@@ -296,7 +307,7 @@ int isValid (unsigned char binaryMatrix[2400], unsigned char x, unsigned char y,
 }
 
 /** @brief A função isValidTransform serve tal como a função isValid, porém é utilizada apenas nas transformações de
-  * erosão e dilatação, e como tal, não precisam da matriz de visitados.
+  * erosão e dilatação, e como tal, não precisa da matriz de visitados.
   *
   * @param binaryMatrix[2400] Matriz binária representando a imagem passada a limiarização.
   * @param x posição x na matriz
@@ -321,12 +332,12 @@ int isValidTransform (unsigned char binaryMatrix[2400], unsigned char x, unsigne
   *                 0 0 0 0 0 0 0               0 0 0 0 0 0 0
   * Com a execução dessa função, conseguimos eliminar pixels individuais que fiquem "soltos" na imagem,
   * para que não sejam considerados uma componente conexa. É executada antes do dilate, para limpar a imagem.
-  * @param matrix1[2400] Matriz resultante da operação, passada por referência.
+  * @param originalMatrix[2400] Matriz resultante da operação, passada por referência.
   * @param cpImg[2400] Matriz utilizada para fazer o 'backup' de matrix1.
   */
-void erode (unsigned char matrix1[2400], unsigned char cpImg[2400]) {
+void erode (unsigned char originalMatrix[2400], unsigned char cpImg[2400]) {
     for (int i = 0; i < 2400; i++) {
-        cpImg[i] = matrix1[i];
+        cpImg[i] = originalMatrix[i];
         /* Armazenamos os valores originais, para comparação posterior.
          * Isso é necessário para que façamos a erosão sobre os pixels da imagem original, não da imagem
          * alterada pela erosão.
@@ -344,8 +355,7 @@ void erode (unsigned char matrix1[2400], unsigned char cpImg[2400]) {
                      * fica preto, pois isso significa que estamos na borda de um objeto.
                      */
                         ) {
-                    resetBit(matrix1,h,w);
-                    //matrix1[h][w] = 0;
+                    resetBit(originalMatrix,h,w);
                 }
             }
         }
@@ -361,12 +371,12 @@ void erode (unsigned char matrix1[2400], unsigned char cpImg[2400]) {
   *                 0 0 0 0 0 0 0               0 0 0 1 1 0 0
   *                 0 0 0 0 0 0 0               0 0 0 0 0 0 0
   * Com a execução dessa função, conseguimos restaurar ao tamanho original cada objeto da imagem, após a execução do dilate.
-  * @param matrix1[2400] Matriz resultante da operação, passada por referência.
+  * @param originalMatrix[2400] Matriz resultante da operação, passada por referência.
   * @param cpImg[2400] Matriz utilizada para fazer o 'backup' de matrix1.
   */
-void dilate (unsigned char matrix1[2400], unsigned char cpImg[2400]) {
+void dilate (unsigned char originalMatrix[2400], unsigned char cpImg[2400]) {
     for (int h = 0; h < 2400; h++) {
-        cpImg[h] = matrix1[h];
+        cpImg[h] = originalMatrix[h];
         /* Armazenamos os valores originais, para comparação posterior.
          * Isso é necessário para que façamos a erosão sobre os pixels da imagem original, não da imagem
          * alterada pela erosão.
@@ -383,9 +393,7 @@ void dilate (unsigned char matrix1[2400], unsigned char cpImg[2400]) {
                      * branco. Se for, pintamos o pixel atual de branco.
                      */
                         ) {
-                    setBit(matrix1,h,w);
-                    //setBit(visited,h,w);
-                    //matrix1[h][w] = 255;
+                    setBit(originalMatrix,h,w);
                 }
             }
         }
@@ -402,7 +410,7 @@ void dilate (unsigned char matrix1[2400], unsigned char cpImg[2400]) {
   * @param y indica a posição do pixel relativas às colunas da matriz
   * @param visited[2400] indica se o pixel (x,y) foi visitado (1) ou não (0)
   */
-void floodFill (unsigned char binaryMatrix[2400], unsigned char x, unsigned char y, unsigned char visited[2400]/*, int targetColor*/) {
+void floodFill (unsigned char binaryMatrix[2400], unsigned char x, unsigned char y, unsigned char visited[2400]) {
     capacity = 400;
     front = size=0;
     rear = capacity-1;
@@ -411,31 +419,26 @@ void floodFill (unsigned char binaryMatrix[2400], unsigned char x, unsigned char
     unsigned char currentY = 0;
     while (!isEmpty()) {
         dequeue(&currentX, &currentY);              //remove da fila e atualiza a posicao atual
-        //resetBit(binaryMatrix,currentX,currentY);
         setBit(visited,currentX,currentY);          //marca o pixel como visitado
 
         //verifica vizinho acima, se ele for pixel de foreground e não
         //foi visitado, é preenchido e inserido na fila
         if (isValid(binaryMatrix, currentX+1, currentY, visited, 1)){
-            //resetBit(binaryMatrix,currentX+1,currentY);
             setBit(visited, currentX+1, currentY);
             push(currentX+1, currentY);
         }
         //verifica vizinho abaixo, análogo ao caso anterior
         if (isValid(binaryMatrix, currentX-1, currentY, visited, 1)){
-            //resetBit(binaryMatrix,currentX-1,currentY);
             setBit(visited, currentX-1, currentY);
             push(currentX-1, currentY);
         }
         //verifica vizinho a direita, análogo ao caso anterior
         if (isValid(binaryMatrix, currentX, currentY+1, visited, 1)){
-            //resetBit(binaryMatrix,currentX,currentY+1);
             setBit(visited, currentX, currentY+1);
             push(currentX, currentY+1);
         }
         //verifica vizinho a esquerda, análogo ao caso anterior
         if (isValid(binaryMatrix, currentX, currentY-1, visited, 1)){
-            //resetBit(binaryMatrix,currentX,currentY-1);
             setBit(visited, currentX, currentY-1);
             push(currentX, currentY-1);
         }
@@ -495,7 +498,19 @@ int Threshold(unsigned short *hist){
 /*----------------------------------------------END OTSU THRESHOLD----------------------------------------------------*/
 
 /**
- * @brief A função runAlgorithm executa todos os algoritmos já desenvolvidos. Primeiro é gerado  um histograma da imagem,
+ * @brief A função printImgOnUART printa na serial os valores contidos na imagem comprimida da matriz img.
+ */
+void printImgOnUART () {
+    char string[10];
+    for (int i = 0; i < 2400; i++) {
+        sprintf(string, "%d ", img[i]);
+        UART_Escrever_Texto(string);
+    }
+}
+
+/**
+ * @brief A função runAlgorithm executa todos os algoritmos já desenvolvidos. Primeiro a imagem representada pela matriz
+ * myImg é comprimida e inserida na memória de dados e é então gerado  um histograma da imagem a ser utilizada no código,
  * histograma este que é posteriormente passado para a função Threshold. Feito isso, e com o valor ótimo de limiarização
  * obtido, gera-se uma imagem binária que posteriormente passa por erosão e dilatação. Por fim, o Flood Fill é executado,
  * para se contar a quantidade de componentes.
@@ -529,14 +544,14 @@ void runAlgorithm() {
 
     for(h=0;h<120;++h){
         for(w=0;w<160;++w){
-            if(myImg[h][w] >= i){
+            if(myImg[h][w] > i){
                 setBit(img,h,w);
             }
         }
     }
 
-    erode(img, visited);         // Realizamos uma erosÃ£o para limpar pixels "soltos" na imagem.
-    dilate(img, visited);        // Em seguida, uma dilataÃ§Ã£o, para preservar o tamanho dos elementos.
+    erode(img, visited);         // Realizamos uma erosão para limpar pixels "soltos" na imagem.
+    dilate(img, visited);        // Em seguida, uma dilatação, para preservar o tamanho dos elementos.
 
     for(i=0;i<2400;++i){
         visited[i]=0;
@@ -546,47 +561,19 @@ void runAlgorithm() {
 
     for (h = 0; h < 120; h++) {
         for (w = 0; w < 160; w++) {
-            if ((getBit(img,h,w)==1) && (getBit(visited,h,w)==0)) {    // Se o pixel atual for branco e nÃ£o tiver sido visitado
-                connectedComps++;                           // aumentamos a contagem de componentes
-                floodFill(img, h, w, visited);       // e preenchemos aquela componente com uma cor qualquer.
+            if ((getBit(img,h,w)==1) && (getBit(visited,h,w)==0)) {    // Se o pixel atual for branco e não tiver sido visitado
+                connectedComps++;                                      // aumentamos a contagem de componentes
+                floodFill(img, h, w, visited);                         // e preenchemos aquela componente com uma cor qualquer.
             }
         }
     }
-    //  char numcomps[10];
-    //  sprintf(numcomps,"%d\n",connectedComps);
-    //  UART_Escrever_Texto(numcomps);
-    printf("Numero de componentes: %d\n",connectedComps);
-}
-
-void writeFileOnPC () {
-    FILE *file2write = fopen("newTest.txt", "w");
-    for (int v = 0; v < 2400; v++) {
-        fprintf(file2write, "%d ", img[v]);
-    }
-    fclose(file2write);
-
-}
-
-void writeValueOnPC () {
-    FILE *file2write = fopen("testFile.txt", "w");
-    fputs("{", file2write);
-    for (int i = 0; i < 19200; i++) {
-        fputs("255, ", file2write);
-    }
-    fputs("};", file2write);
+    char numcomps[10];
+    sprintf(numcomps, "%d\n", connectedComps);
+    UART_Escrever_Texto(numcomps);
 }
 
 int main() {
-    //clock_t start, end;
-//    UART_iniciar();
-    //while(1){
-        //UART_Escrever_Texto("bbb");
-        //start = clock();
-        runAlgorithm();
-        writeFileOnPC();
-        //writeValueOnPC();
-        //end = clock();
-        //printf("%.4lf\n",(double)(end-start)/(CLOCKS_PER_SEC/1000.0));
-    //}
+    runAlgorithm();
+    //printImgOnUART();   // Descomentar esta linha caso se queira printar a imagem comprimida na uart.
     return 0;
 }
