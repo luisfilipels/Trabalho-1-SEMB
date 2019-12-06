@@ -76,9 +76,13 @@
  * Autor: Raimundo Azevedo
  * Motivo: Todas as funções funcionando no PIC.
  * -------------------------------------------------
- * Data: 18/11/19, 18:54 AM
+ * Data: 18/11/19, 06:54 PM
  * Autor: Luis Filipe
  * Motivo: Comentários para execução no PIC.
+ * -------------------------------------------------
+ * Data: 05/12/19, 09:40 PM
+ * Autor: Luis Filipe
+ * Motivo: Remoção de matriz e inlining de funções.
  * -------------------------------------------------
 */
 
@@ -289,12 +293,16 @@ void dequeue (unsigned char *x, unsigned char *y) {
 
 /*------------------------------------------INIT FLOOD FILL & TRANSFORMS----------------------------------------------*/
 
-int limiarize (int h, int w) {
+#define limiarize(a,b) myImg[h][w]>globalThreshold?1:0
+
+/*int limiarize (int h, int w) {
     if (myImg[h][w] > globalThreshold) {
         return 1;
     }
     return 0;
-}
+}*/
+
+#define isValidInline(a,b,c,d) b>=0 && b<120 && c>=0 && c<160 && getBit(a,b,c)==d ? 1 : 0
 
 /** @brief A função isValid serve tanto para determinar se valores x e y estÃ£o dentro dos limites de
   * uma imagem 160x120, como para verificar se a posição indicada por esses dois números não foi já
@@ -313,6 +321,8 @@ int isValid (unsigned char binaryMatrix[2400], unsigned char x, unsigned char y/
     }
     return 0;
 }
+
+#define isValidTransformInline(a,b,c) a>=0 && a<120 && b>=0 && b<160 && (myImg[a][b]>globalThreshold?1:0)/*limiarize(a,b)*/==c? 1 : 0
 
 /** @brief A função isValidTransform serve tal como a função isValid, porém é utilizada apenas nas transformações de
   * erosão e dilatação, e como tal, não precisa da matriz de visitados.
@@ -356,10 +366,10 @@ void erode (unsigned char outMatrix[2400]/*, unsigned char cpImg[2400]*/) {
     for (int h = 0; h < 120; h++) {
         for (int w = 0; w < 160; w++) {
             if (limiarize(h, w) == 1) {  // Se o pixel estiver "pintado"
-                if (  isValidTransform(h, w-1, 0) ||
-                      isValidTransform(h, w+1, 0) ||
-                      isValidTransform(h+1, w, 0) ||
-                      isValidTransform(h-1, w, 0) //||
+                if (  isValidTransformInline(h, w-1, 0) ||
+                      isValidTransformInline(h, w+1, 0) ||
+                      isValidTransformInline(h+1, w, 0) ||
+                      isValidTransformInline(h-1, w, 0) //||
                     /* As verificações anteriores servem para determinar se algum dos vizinhos de um pixel branco
                      * (vizinhos apenas em cima e em baixo, esquerda e direita), é preto. Se for, o pixel atual
                      * fica preto, pois isso significa que estamos na borda de um objeto.
@@ -395,10 +405,10 @@ void dilate (unsigned char outMatrix[2400]/*, unsigned char cpImg[2400]*/) {
     for (int h = 0; h < 120; ++h) {
         for (int w = 0; w < 160; ++w) {
             if (limiarize(h, w) == 0) { // Se o pixel atual for preto.
-                if (isValidTransform(h, w-1, 1) ||
-                    isValidTransform(h, w+1, 1) ||
-                    isValidTransform(h+1, w, 1) ||
-                    isValidTransform(h-1, w, 1) // ||
+                if (isValidTransformInline(h, w-1, 1) ||
+                    isValidTransformInline(h, w+1, 1) ||
+                    isValidTransformInline(h+1, w, 1) ||
+                    isValidTransformInline(h-1, w, 1) // ||
                     /* As verificações anteriores servem para determinar se algum vizinho de um pixel preto é
                      * branco. Se for, pintamos o pixel atual de branco.
                      */
@@ -434,25 +444,25 @@ void floodFill (unsigned char binaryMatrix[2400], unsigned char x, unsigned char
 
         //verifica vizinho acima, se ele for pixel de foreground e não
         //foi visitado, é preenchido e inserido na fila
-        if (isValid(binaryMatrix, currentX+1, currentY, 1)){
+        if (isValidInline(binaryMatrix, currentX+1, currentY+1, 1)){
             //setBit(visited, currentX+1, currentY);
             resetBit(binaryMatrix, currentX+1, currentY);
             push(currentX+1, currentY);
         }
         //verifica vizinho abaixo, análogo ao caso anterior
-        if (isValid(binaryMatrix, currentX-1, currentY, 1)){
+        if (isValidInline(binaryMatrix, currentX-1, currentY, 1)){
             //setBit(visited, currentX-1, currentY);
             resetBit(binaryMatrix, currentX-1, currentY);
             push(currentX-1, currentY);
         }
         //verifica vizinho a direita, análogo ao caso anterior
-        if (isValid(binaryMatrix, currentX, currentY+1, 1)){
+        if (isValidInline(binaryMatrix, currentX, currentY+1, 1)){
             //setBit(visited, currentX, currentY+1);
             resetBit(binaryMatrix, currentX, currentY+1);
             push(currentX, currentY+1);
         }
         //verifica vizinho a esquerda, análogo ao caso anterior
-        if (isValid(binaryMatrix, currentX, currentY-1, 1)){
+        if (isValidInline(binaryMatrix, currentX, currentY-1, 1)){
             //setBit(visited, currentX, currentY-1);
             resetBit(binaryMatrix, currentX, currentY-1);
             push(currentX, currentY-1);
@@ -574,9 +584,9 @@ void runAlgorithm() {
         }
     }
 
-    erode(img);         // Realizamos uma erosão para limpar pixels "soltos" na imagem.
+    //erode(img);         // Realizamos uma erosão para limpar pixels "soltos" na imagem.
     dilate(img);        // Em seguida, uma dilatação, para preservar o tamanho dos elementos.
-    writeFileOnPC();
+    //writeFileOnPC();
 
     //for(i=0;i<2400;++i){
     //    visited[i]=0;
